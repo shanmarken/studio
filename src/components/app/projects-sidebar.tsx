@@ -36,6 +36,7 @@ export function ProjectsSidebar() {
                 <ProjectPulseLogo />
                 {isExpanded && <h1 className="font-semibold text-lg">Project Pulse</h1>}
             </div>
+            <SidebarTrigger className="hidden md:flex" />
             {isMobile && (
               <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-7 w-7">
                 <PanelLeft />
