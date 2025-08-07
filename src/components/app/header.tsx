@@ -29,8 +29,7 @@ export function Header({ onAddTask, onExport }: HeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm border-b">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
               <Link href="/projects" className="flex items-center gap-2 text-foreground hover:no-underline">
                   <ArrowLeft className="h-5 w-5 md:hidden" />
@@ -82,7 +81,6 @@ export function Header({ onAddTask, onExport }: HeaderProps) {
                 )}
             </div>
           </div>
-        </div>
       </header>
       <ProfileDialog isOpen={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen} />
     </>
