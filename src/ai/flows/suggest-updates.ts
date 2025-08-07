@@ -29,9 +29,14 @@ const SuggestUpdatesInputSchema = z.object({
 });
 export type SuggestUpdatesInput = z.infer<typeof SuggestUpdatesInputSchema>;
 
+const SuggestionSchema = z.object({
+    title: z.string().describe('A short, actionable title for the suggestion.'),
+    description: z.string().describe('A detailed description of the suggested action.'),
+    category: z.enum(['Re-scoping', 'Re-assignment', 'Dependency Management', 'Investigation', 'Communication']).describe('The category of the suggestion.'),
+});
+
 const SuggestUpdatesOutputSchema = z.object({
-  suggestedUpdates: z
-    .string()
+  suggestedUpdates: z.array(SuggestionSchema)
     .describe(
       'A list of suggested updates to get the task back on track, including potential reassignments, deadline extensions, or dependency adjustments.'
     ),
@@ -46,25 +51,33 @@ const suggestUpdatesPrompt = ai.definePrompt({
   name: 'suggestUpdatesPrompt',
   input: {schema: SuggestUpdatesInputSchema},
   output: {schema: SuggestUpdatesOutputSchema},
-  prompt: `You are a project management assistant tasked with identifying solutions for stalled tasks.
+  prompt: `You are an expert project management assistant tasked with identifying solutions for stalled or blocked tasks.
 
-  Given the following details about a stalled task, suggest concrete steps to get the task back on track.
+  Given the following details about a stalled task, suggest a list of 2-3 concrete, actionable steps to get it back on track. For each suggestion, provide a clear title, a detailed description, and categorize it.
 
-  Phase: {{{phase}}}
-  Task Name: {{{taskName}}}
-  Task Description: {{{taskDescription}}}
-  Assigned Team Member: {{{assignedTeamMember}}}
-  Priority: {{{priority}}}
-  Estimated Hours: {{{estimatedHours}}}
-  Start Date: {{{startDate}}}
-  End Date: {{{endDate}}}
-  Current Status: {{{currentStatus}}}
-  Percent Complete: {{{percentComplete}}}
-  Dependencies: {{{dependencies}}}
-  Notes: {{{notes}}}
+  Task Details:
+  - Phase: {{{phase}}}
+  - Task Name: {{{taskName}}}
+  - Description: {{{taskDescription}}}
+  - Assigned To: {{{assignedTeamMember}}}
+  - Priority: {{{priority}}}
+  - Estimated Hours: {{{estimatedHours}}}
+  - Dates: {{{startDate}}} to {{{endDate}}}
+  - Status: {{{currentStatus}}}
+  - Progress: {{{percentComplete}}}%
+  - Dependencies: {{{dependencies}}}
+  - Notes: {{{notes}}}
 
-  Consider potential reassignments, deadline extensions, dependency adjustments, or other relevant actions.
-  Provide specific, actionable suggestions.
+  Analyze the task details to identify potential root causes for the delay. Is the scope too large? Is there a dependency issue? Is the assignee overloaded?
+
+  Based on your analysis, generate suggestions. Consider:
+  - Breaking the task into smaller, more manageable sub-tasks.
+  - Re-evaluating dependencies and priorities.
+  - Suggesting a discussion between team members.
+  - Proposing a specific investigation to clarify an unknown.
+  - Recommending a change in approach or a deadline extension.
+
+  Your response must be a structured list of suggestions.
   `,
 });
 
