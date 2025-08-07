@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -44,7 +45,7 @@ export function ProjectsSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-            <SidebarMenuItem>
+            <SidebarMenuItem className="mt-[10px]">
                 <SidebarMenuButton tooltip="Projects" isActive={pathname.includes('/projects')}>
                     <FolderKanban />
                     <span>Projects</span>
