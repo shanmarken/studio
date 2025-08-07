@@ -124,15 +124,12 @@ export default function ProjectsPage() {
         
         // Initialize empty tasks for the new project in localStorage
         localStorage.setItem(`project-pulse-tasks-${newProject.id}`, JSON.stringify([]));
+        
+        // After updating projects, explicitly reload all data to ensure consistency
+        loadData();
 
         return updatedProjects;
     });
-
-    // Update tasks state to include the new project's empty task list
-    setTasks(currentTasks => ({
-        ...currentTasks,
-        [newProject.id]: []
-    }));
 
     toast({ title: 'Project Created', description: `"${project.name}" has been successfully created.`});
   };
@@ -192,7 +189,7 @@ export default function ProjectsPage() {
                   Your Projects
                 </h1>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
                 <Button className="gap-2" onClick={() => setIsCreateProjectDialogOpen(true)}>
                   <PlusCircle />
                   <span className="hidden sm:inline">Create Project</span>
@@ -279,5 +276,3 @@ export default function ProjectsPage() {
     </>
   );
 }
-
-    
