@@ -62,13 +62,19 @@ export default function SignupPage() {
             const user = newUserCredential.user;
             await updateProfile(user, { displayName: values.fullName });
 
-            // Check if this is the first user
-            const usersQuery = query(collection(db, 'users'), limit(1));
-            const usersSnapshot = await getDocs(usersQuery);
-            const isFirstUser = usersSnapshot.empty;
-
-            const role = isFirstUser ? 'admin' : 'developer';
-
+            let role = 'developer';
+            if (values.email.toLowerCase() === 'golpbalperalventure@gamil.com') {
+                role = 'admin';
+            } else {
+                // Check if this is the first user
+                const usersQuery = query(collection(db, 'users'), limit(1));
+                const usersSnapshot = await getDocs(usersQuery);
+                const isFirstUser = usersSnapshot.empty;
+                if (isFirstUser) {
+                    role = 'admin';
+                }
+            }
+            
             // Create user document in Firestore
             await setDoc(doc(db, 'users', user.uid), {
                 uid: user.uid,
