@@ -19,25 +19,39 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useState } from 'react';
 import { ProfileDialog } from '@/components/app/profile-dialog';
+import { CreateProjectDialog } from '@/components/app/create-project-dialog';
+
+const initialProjects = [
+  {
+    id: '1',
+    name: 'Project Pulse',
+    description: 'A next-gen project management tool to keep your development lifecycle on track.',
+    lastUpdated: '2 days ago',
+  },
+  {
+    id: '2',
+    name: 'Website Redesign',
+    description: 'A complete overhaul of the corporate website and branding.',
+    lastUpdated: '5 days ago',
+  },
+];
+
 
 export default function ProjectsPage() {
   const { user } = useAuth();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
+  const [projects, setProjects] = useState(initialProjects);
+
+  const handleCreateProject = (project: { name: string; description: string }) => {
+    const newProject = {
+      ...project,
+      id: (projects.length + 1).toString(),
+      lastUpdated: 'Just now',
+    };
+    setProjects(prevProjects => [...prevProjects, newProject]);
+  };
   
-  const projects = [
-    {
-      id: '1',
-      name: 'Project Pulse',
-      description: 'A next-gen project management tool to keep your development lifecycle on track.',
-      lastUpdated: '2 days ago',
-    },
-    {
-      id: '2',
-      name: 'Website Redesign',
-      description: 'A complete overhaul of the corporate website and branding.',
-      lastUpdated: '5 days ago',
-    },
-  ];
 
   return (
     <>
@@ -52,7 +66,7 @@ export default function ProjectsPage() {
                 </h1>
               </div>
               <div className="flex items-center gap-4">
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => setIsCreateProjectDialogOpen(true)}>
                   <PlusCircle />
                   <span className="hidden sm:inline">Create Project</span>
                 </Button>
@@ -104,7 +118,10 @@ export default function ProjectsPage() {
                 </Card>
               </Link>
             ))}
-            <Card className="border-dashed border-2 hover:border-primary hover:text-primary transition-colors flex items-center justify-center min-h-[200px] cursor-pointer">
+            <Card 
+              className="border-dashed border-2 hover:border-primary hover:text-primary transition-colors flex items-center justify-center min-h-[200px] cursor-pointer"
+              onClick={() => setIsCreateProjectDialogOpen(true)}
+            >
                 <div className="text-center">
                   <PlusCircle className="mx-auto h-10 w-10 text-muted-foreground" />
                   <p className="mt-2 font-semibold">Create New Project</p>
@@ -114,6 +131,7 @@ export default function ProjectsPage() {
         </main>
       </div>
       <ProfileDialog isOpen={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen} />
+      <CreateProjectDialog isOpen={isCreateProjectDialogOpen} onOpenChange={setIsCreateProjectDialogOpen} onSave={handleCreateProject} />
     </>
   );
 }
