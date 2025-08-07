@@ -8,6 +8,7 @@ const firebaseConfig = {
   apiKey: 'AIzaSyC9UTcTKTzX0mesZg6HG4Mr0ELWFXtnbr0',
   authDomain: 'project-pulse-17wzf.firebaseapp.com',
   messagingSenderId: '906680989803',
+  measurementId: 'G-XXXXXXXXXX',
 };
 
 // Initialize Firebase
