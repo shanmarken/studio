@@ -8,7 +8,7 @@ import { User, UserRole } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Edit, LoaderCircle, UserPlus } from 'lucide-react';
+import { Edit, LoaderCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { EditUserRoleDialog } from './edit-user-role-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -54,11 +54,6 @@ export function TeamMembersTable() {
             setUserToEdit(null);
         }
     };
-    
-    // TODO: Implement Invite User functionality
-    const handleInviteUser = () => {
-        toast({ title: 'Coming Soon!', description: 'The ability to invite new users is not yet implemented.' });
-    };
 
     if (loading) {
         return (
@@ -71,12 +66,6 @@ export function TeamMembersTable() {
 
     return (
         <>
-            <div className="flex justify-end mb-4">
-                <Button onClick={handleInviteUser}>
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Invite User
-                </Button>
-            </div>
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>
@@ -121,4 +110,3 @@ export function TeamMembersTable() {
         </>
     );
 }
-

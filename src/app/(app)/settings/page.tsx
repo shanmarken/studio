@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { TeamMembersTable } from "@/components/app/team-members-table";
 import { useAuth } from "@/hooks/use-auth";
+import { UserPlus } from "lucide-react";
 
 const companyProfileSchema = z.object({
     companyName: z.string().min(2, { message: "Company name must be at least 2 characters." }),
@@ -47,6 +48,11 @@ export default function SettingsPage() {
     });
   }
 
+  // TODO: Implement Invite User functionality
+  const handleInviteUser = () => {
+    toast({ title: 'Coming Soon!', description: 'The ability to invite new users is not yet implemented.' });
+  };
+
   if (user?.role !== 'admin') {
     return (
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -78,9 +84,15 @@ export default function SettingsPage() {
                 </TabsList>
                 <TabsContent value="team" className="mt-4">
                     <Card>
-                    <CardHeader>
-                        <CardTitle>Your Team</CardTitle>
-                        <CardDescription>Manage team members and their roles.</CardDescription>
+                    <CardHeader className="flex flex-row items-start justify-between">
+                        <div>
+                            <CardTitle>Your Team</CardTitle>
+                            <CardDescription>Manage team members and their roles.</CardDescription>
+                        </div>
+                        <Button onClick={handleInviteUser}>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Invite User
+                        </Button>
                     </CardHeader>
                     <CardContent>
                         <TeamMembersTable />
