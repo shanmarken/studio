@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, PlusCircle, User as UserIcon } from 'lucide-react';
+import { LogOut, PlusCircle, User as UserIcon, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { ProjectPulseLogo } from '@/components/app/project-pulse-logo';
 import { useAuth } from '@/hooks/use-auth';
@@ -20,6 +20,8 @@ import {
 import { useState } from 'react';
 import { ProfileDialog } from '@/components/app/profile-dialog';
 import { CreateProjectDialog } from '@/components/app/create-project-dialog';
+import { DeleteProjectDialog } from '@/components/app/delete-project-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 const initialProjects = [
   {
@@ -39,8 +41,11 @@ const initialProjects = [
 
 export default function ProjectsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [projects, setProjects] = useState(initialProjects);
 
   const handleCreateProject = (project: { name: string; description: string }) => {
@@ -50,6 +55,24 @@ export default function ProjectsPage() {
       lastUpdated: 'Just now',
     };
     setProjects(prevProjects => [...prevProjects, newProject]);
+    toast({ title: 'Project Created', description: `"${project.name}" has been successfully created.`});
+  };
+
+  const handleDeleteRequest = (e: React.MouseEvent, projectId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setProjectToDelete(projectId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (projectToDelete) {
+      const project = projects.find(p => p.id === projectToDelete);
+      setProjects(prevProjects => prevProjects.filter(p => p.id !== projectToDelete));
+      toast({ title: 'Project Deleted', description: `"${project?.name}" has been deleted.`});
+      setProjectToDelete(null);
+      setIsDeleteDialogOpen(false);
+    }
   };
   
 
@@ -105,8 +128,16 @@ export default function ProjectsPage() {
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {projects.map((project) => (
-              <Link href={`/projects/${project.id}`} key={project.id} className="block hover:no-underline">
-                <Card className="hover:shadow-lg hover:-translate-y-1 transition-all h-full flex flex-col">
+              <Link href={`/projects/${project.id}`} key={project.id} className="block hover:no-underline group/card">
+                <Card className="hover:shadow-lg hover:-translate-y-1 transition-all h-full flex flex-col relative">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-50 group-hover/card:opacity-100 transition-opacity"
+                    onClick={(e) => handleDeleteRequest(e, project.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                   <CardHeader>
                     <CardTitle>{project.name}</CardTitle>
                     <CardDescription>{project.description}</CardDescription>
@@ -132,6 +163,7 @@ export default function ProjectsPage() {
       </div>
       <ProfileDialog isOpen={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen} />
       <CreateProjectDialog isOpen={isCreateProjectDialogOpen} onOpenChange={setIsCreateProjectDialogOpen} onSave={handleCreateProject} />
+      <DeleteProjectDialog isOpen={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} onConfirm={handleConfirmDelete} />
     </>
   );
 }
