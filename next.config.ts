@@ -18,15 +18,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async redirects() {
-    return [
-      {
-        source: '/projects',
-        destination: '/(app)/projects',
-        permanent: true,
-      },
-    ]
-  },
 };
 
 export default nextConfig;
