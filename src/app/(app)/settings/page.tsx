@@ -1,11 +1,49 @@
 
 'use client';
 
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
+const companyProfileSchema = z.object({
+    companyName: z.string().min(2, { message: "Company name must be at least 2 characters." }),
+    website: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+    address: z.string().max(100).optional(),
+    description: z.string().max(500).optional(),
+});
+
+type CompanyProfileFormValues = z.infer<typeof companyProfileSchema>;
 
 export default function SettingsPage() {
+  const { toast } = useToast();
+
+  const form = useForm<CompanyProfileFormValues>({
+    resolver: zodResolver(companyProfileSchema),
+    // TODO: Fetch and populate with existing data
+    defaultValues: {
+      companyName: "",
+      website: "",
+      address: "",
+      description: "",
+    },
+  });
+
+  function onSubmit(values: CompanyProfileFormValues) {
+    console.log(values);
+    // TODO: Implement save logic
+    toast({
+      title: "Profile Saved",
+      description: "Your company profile has been updated.",
+    });
+  }
+
 
   return (
     <>
@@ -15,7 +53,7 @@ export default function SettingsPage() {
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-             <Tabs defaultValue="team" className="w-full">
+             <Tabs defaultValue="profile" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 max-w-md">
                     <TabsTrigger value="team">Team Management</TabsTrigger>
                     <TabsTrigger value="profile">Company Profile</TabsTrigger>
@@ -38,7 +76,69 @@ export default function SettingsPage() {
                         <CardDescription>Update your company's information.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <p>Company profile settings will be here.</p>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                                <FormField
+                                    control={form.control}
+                                    name="companyName"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Company Name</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="e.g. Acme Inc." {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="website"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Website</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="https://example.com" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                 <FormField
+                                    control={form.control}
+                                    name="address"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Address</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="123 Main St, Anytown, USA" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Company Description</FormLabel>
+                                            <FormControl>
+                                                <Textarea
+                                                placeholder="Tell us a little about your company"
+                                                className="resize-none"
+                                                {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <div className="flex justify-end">
+                                    <Button type="submit">Save Changes</Button>
+                                </div>
+                            </form>
+                        </Form>
                     </CardContent>
                     </Card>
                 </TabsContent>
