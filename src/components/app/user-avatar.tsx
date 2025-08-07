@@ -1,3 +1,4 @@
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +11,8 @@ export function UserAvatar({ name, className }: UserAvatarProps) {
   const initials = name
     .split(" ")
     .map((n) => n[0])
-    .join("");
+    .join("")
+    .substring(0,2);
 
   return (
     <Avatar className={cn("h-8 w-8 text-sm", className)}>
