@@ -21,8 +21,6 @@ import { useEffect, useState } from 'react';
 import { collection, query, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { SettingsSheet } from './settings-sheet';
 
 interface Project {
   id: string;
@@ -39,8 +37,8 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const pathname = usePathname();
-  const [isSettingsSheetOpen, setIsSettingsSheetOpen] = useState(false);
-  const [activeSettingsTab, setActiveSettingsTab] = useState<'team' | 'profile'>('team');
+  
+  const isExpanded = sidebarState === 'expanded';
 
   useEffect(() => {
     if (user) {
@@ -64,13 +62,6 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
     }
   }, [user, projectId]);
   
-  const isExpanded = sidebarState === 'expanded';
-
-  const openSettingsSheet = (tab: 'team' | 'profile') => {
-    setActiveSettingsTab(tab);
-    setIsSettingsSheetOpen(true);
-  }
-
   return (
     <>
     <Sidebar>
@@ -111,24 +102,12 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
                 </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton tooltip="Settings" isActive={pathname.includes('/settings')}>
-                        <Settings />
-                        <span>Settings</span>
-                    </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent side="right" align="start" className="ml-2">
-                      <DropdownMenuItem onClick={() => openSettingsSheet('team')}>
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Team</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openSettingsSheet('profile')}>
-                        <Building className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
-                      </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Link href="/settings" className="block w-full">
+                  <SidebarMenuButton tooltip="Settings" isActive={pathname.includes('/settings')}>
+                      <Settings />
+                      <span>Settings</span>
+                  </SidebarMenuButton>
+                </Link>
             </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
@@ -151,11 +130,6 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
         </div>
       </SidebarFooter>
     </Sidebar>
-    <SettingsSheet
-        isOpen={isSettingsSheetOpen}
-        onOpenChange={setIsSettingsSheetOpen}
-        activeTab={activeSettingsTab}
-     />
     </>
   );
 }
