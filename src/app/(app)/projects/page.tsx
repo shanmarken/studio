@@ -17,11 +17,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ProfileDialog } from '@/components/app/profile-dialog';
 import { CreateProjectDialog } from '@/components/app/create-project-dialog';
 import { DeleteProjectDialog } from '@/components/app/delete-project-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Task } from '@/lib/types';
+import { INITIAL_TASKS } from '@/lib/constants';
+import { Progress } from '@/components/ui/progress';
 
 const initialProjects = [
   {
@@ -47,6 +50,13 @@ export default function ProjectsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [projects, setProjects] = useState(initialProjects);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    const savedTasks = localStorage.getItem('project-pulse-tasks');
+    const allTasks = savedTasks ? JSON.parse(savedTasks) : INITIAL_TASKS;
+    setTasks(allTasks);
+  }, []);
 
   const handleCreateProject = (project: { name: string; description: string }) => {
     const newProject = {
@@ -74,6 +84,14 @@ export default function ProjectsPage() {
       setIsDeleteDialogOpen(false);
     }
   };
+
+  const getProjectProgress = (projectId: string) => {
+    const projectTasks = tasks.filter(t => t.id.startsWith(projectId)); // A simple way to associate tasks
+    if (projectTasks.length === 0) return 0;
+
+    const totalProgress = projectTasks.reduce((acc, task) => acc + task.percentComplete, 0);
+    return Math.round(totalProgress / projectTasks.length);
+  }
   
 
   return (
@@ -127,28 +145,36 @@ export default function ProjectsPage() {
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {projects.map((project) => (
-              <Link href={`/projects/${project.id}`} key={project.id} className="block hover:no-underline group/card">
-                <Card className="hover:shadow-lg hover:-translate-y-1 transition-all h-full flex flex-col relative">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-50 group-hover/card:opacity-100 transition-opacity"
-                    onClick={(e) => handleDeleteRequest(e, project.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <CardHeader>
-                    <CardTitle>{project.name}</CardTitle>
-                    <CardDescription>{project.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow"></CardContent>
-                  <div className="p-4 pt-0 text-xs text-muted-foreground">
-                      Last updated {project.lastUpdated}
-                  </div>
-                </Card>
-              </Link>
-            ))}
+            {projects.map((project) => {
+              const progress = getProjectProgress(project.id);
+              return (
+                <Link href={`/projects/${project.id}`} key={project.id} className="block hover:no-underline group/card">
+                  <Card className="hover:shadow-lg hover:-translate-y-1 transition-all h-full flex flex-col relative">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-50 group-hover/card:opacity-100 transition-opacity"
+                      onClick={(e) => handleDeleteRequest(e, project.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <CardHeader>
+                      <CardTitle>{project.name}</CardTitle>
+                      <CardDescription>{project.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow space-y-2">
+                      <div className="flex items-center gap-2">
+                          <Progress value={progress} className="h-2" />
+                          <span className="text-xs font-mono">{progress}%</span>
+                        </div>
+                    </CardContent>
+                    <div className="p-4 pt-0 text-xs text-muted-foreground">
+                        Last updated {project.lastUpdated}
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
             <Card 
               className="border-dashed border-2 hover:border-primary hover:text-primary transition-colors flex items-center justify-center min-h-[200px] cursor-pointer"
               onClick={() => setIsCreateProjectDialogOpen(true)}
