@@ -1,5 +1,7 @@
+
 export type Status = 'To Do' | 'In Progress' | 'Completed' | 'Blocked';
 export type Priority = 'High' | 'Medium' | 'Low';
+export type UserRole = 'admin' | 'developer' | 'management';
 
 export type SubTask = {
   id: string;

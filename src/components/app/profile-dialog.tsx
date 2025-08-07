@@ -27,7 +27,9 @@ import { useEffect, useState } from 'react';
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { Badge } from '../ui/badge';
 
 const profileSchema = z.object({
   fullName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
@@ -82,6 +84,9 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
     try {
       if (values.fullName !== user.displayName) {
         await updateProfile(user, { displayName: values.fullName });
+        // Also update in Firestore
+        const userRef = doc(db, 'users', user.uid);
+        await setDoc(userRef, { displayName: values.fullName }, { merge: true });
       }
       
       if (values.newPassword) {
@@ -139,6 +144,14 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
                 </FormItem>
               )}
             />
+            {user?.role && (
+                <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <div>
+                        <Badge variant="secondary" className="capitalize">{user.role}</Badge>
+                    </div>
+                </FormItem>
+            )}
              <FormField
               control={form.control}
               name="newPassword"

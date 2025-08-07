@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -15,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useCreateUserWithEmailAndPassword } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -23,6 +24,7 @@ import { LoaderCircle } from 'lucide-react';
 import { ProjectPulseLogo } from '@/components/app/project-pulse-logo';
 import Image from 'next/image';
 import { updateProfile } from 'firebase/auth';
+import { doc, getDocs, setDoc, collection, query, limit } from 'firebase/firestore';
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
@@ -54,9 +56,33 @@ export default function SignupPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const newUser = await createUserWithEmailAndPassword(values.email, values.password);
-    if (newUser) {
-      await updateProfile(newUser.user, { displayName: values.fullName });
+    try {
+        const newUserCredential = await createUserWithEmailAndPassword(values.email, values.password);
+        if (newUserCredential) {
+            const user = newUserCredential.user;
+            await updateProfile(user, { displayName: values.fullName });
+
+            // Check if this is the first user
+            const usersQuery = query(collection(db, 'users'), limit(1));
+            const usersSnapshot = await getDocs(usersQuery);
+            const isFirstUser = usersSnapshot.empty;
+
+            const role = isFirstUser ? 'admin' : 'developer';
+
+            // Create user document in Firestore
+            await setDoc(doc(db, 'users', user.uid), {
+                uid: user.uid,
+                email: user.email,
+                displayName: values.fullName,
+                role: role,
+            });
+        }
+    } catch (e: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Authentication Error',
+            description: e.message || "An unexpected error occurred.",
+        });
     }
   }
 
