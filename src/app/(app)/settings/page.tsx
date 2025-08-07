@@ -85,7 +85,6 @@ export default function SettingsPage() {
                     <CardHeader className="flex flex-row items-start justify-between">
                         <div>
                             <CardTitle>Your Team</CardTitle>
-                            <CardDescription>Manage team members and their roles.</CardDescription>
                         </div>
                         <Button onClick={() => setIsInviteDialogOpen(true)}>
                             <UserPlus className="mr-2 h-4 w-4" />
