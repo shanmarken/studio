@@ -107,7 +107,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
         assignedTo: user?.displayName || '',
         priority: 'Medium',
         estimatedHours: 8,
-        startDate: new date(),
+        startDate: new Date(),
         endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
         status: 'To Do',
         percentComplete: 0,
