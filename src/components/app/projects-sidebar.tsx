@@ -13,11 +13,10 @@ import {
 } from '@/components/ui/sidebar';
 import { ProjectPulseLogo } from './project-pulse-logo';
 import { Button } from '../ui/button';
-import { LogOut, Settings, LayoutDashboard, FolderKanban, ChevronsRightLeft, PanelLeft } from 'lucide-react';
+import { LogOut, Settings, FolderKanban, PanelLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { auth } from '@/lib/firebase';
 import { UserAvatar } from './user-avatar';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 export function ProjectsSidebar() {
@@ -36,7 +35,6 @@ export function ProjectsSidebar() {
                 {isExpanded && <h1 className="font-semibold text-lg">Project Pulse</h1>}
             </div>
             <div className="flex items-center">
-              <SidebarTrigger className="hidden md:flex mt-1" />
               {isMobile && (
                 <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-7 w-7">
                   <PanelLeft />
@@ -62,6 +60,9 @@ export function ProjectsSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
+        <div className="w-full p-2 border-t border-sidebar-border">
+            <SidebarTrigger className="hidden md:flex" />
+        </div>
         <div className="w-full p-2 border-t border-sidebar-border">
             {user && (
                  <div className="flex items-center gap-2">
