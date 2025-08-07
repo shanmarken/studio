@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Task } from '@/lib/types';
@@ -7,28 +8,22 @@ import { cn } from '@/lib/utils';
 import { UserAvatar } from './user-avatar';
 import { Progress } from '../ui/progress';
 import { Button } from '../ui/button';
-import { BrainCircuit, Edit, Trash2 } from 'lucide-react';
+import { BrainCircuit, Edit, Trash2, ArrowRightCircle } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from 'lucide-react';
 
 type TaskCardProps = {
   task: Task;
   onEdit: (task: Task) => void;
   onSuggest: (task: Task) => void;
   onDelete: (task: Task) => void;
+  onPromote: (task: Task) => void;
   onCompleteToggle: (taskId: string, isComplete: boolean) => void;
   onSubTaskToggle: (taskId: string, subTaskId: string, isComplete: boolean) => void;
 };
 
-export function TaskCard({ task, onEdit, onSuggest, onDelete, onCompleteToggle, onSubTaskToggle }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompleteToggle, onSubTaskToggle }: TaskCardProps) {
   const priorityColorMap = {
     High: 'bg-red-500/20 text-red-700 border-red-500/30 dark:text-red-400',
     Medium: 'bg-amber-500/20 text-amber-700 border-amber-500/30 dark:text-amber-400',
@@ -111,10 +106,18 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onCompleteToggle, 
         </div>
         <Separator className="my-3" />
         <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={() => onSuggest(task)} className="gap-2">
-            <BrainCircuit className="size-4" />
-            Suggest
-          </Button>
+          {task.status === 'Completed' ? (
+              <Button variant="outline" size="sm" onClick={() => onPromote(task)} className="gap-2">
+                <ArrowRightCircle className="size-4" />
+                Promote
+              </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => onSuggest(task)} className="gap-2">
+              <BrainCircuit className="size-4" />
+              Suggest
+            </Button>
+          )}
+
           <Button variant="ghost" size="sm" onClick={() => onEdit(task)} className="gap-2">
             <Edit className="size-4" />
             Edit

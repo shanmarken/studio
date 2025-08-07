@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { exportToCsv } from '@/lib/utils';
 import { SuggestUpdateDialog } from './suggest-update-dialog';
 import { DeleteTaskDialog } from './delete-task-dialog';
+import { PromoteTaskDialog } from './promote-task-dialog';
 
 interface DashboardProps {
   projectId: string;
@@ -24,6 +25,9 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [taskToSuggest, setTaskToSuggest] = useState<Task | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [isPromoteDialogOpen, setIsPromoteDialogOpen] = useState(false);
+  const [taskToPromote, setTaskToPromote] = useState<Task | null>(null);
+
   
   const { toast } = useToast();
   const storageKey = `project-pulse-tasks-${projectId}`;
@@ -57,7 +61,8 @@ export default function Dashboard({ projectId }: DashboardProps) {
 
   useEffect(() => {
     // Persist tasks to local storage whenever they change
-    if (tasks.length > 0) {
+    // Make sure we don't clear out existing tasks on first load
+    if (tasks.length > 0 || localStorage.getItem(storageKey)) {
         localStorage.setItem(storageKey, JSON.stringify(tasks));
     }
   }, [tasks, storageKey]);
@@ -131,6 +136,30 @@ export default function Dashboard({ projectId }: DashboardProps) {
     setIsSuggestDialogOpen(true);
   }
 
+  const handlePromoteRequest = (task: Task) => {
+    setTaskToPromote(task);
+    setIsPromoteDialogOpen(true);
+  }
+
+  const handleConfirmPromote = (task: Task, newPhase: string) => {
+    const newTask: Task = {
+        ...task,
+        id: new Date().toISOString(), // New ID for the cloned task
+        phase: newPhase,
+        status: 'To Do',
+        percentComplete: 0,
+        // Reset sub-tasks to be incomplete
+        subTasks: task.subTasks?.map(st => ({...st, completed: false})),
+    };
+
+    setTasks(prevTasks => [...prevTasks, newTask]);
+
+    toast({
+        title: 'Task Promoted',
+        description: `A new task "${newTask.name}" was created in the ${newPhase} phase.`
+    });
+  };
+
   const handleTaskCompleteToggle = (taskId: string, isComplete: boolean) => {
     setTasks(prevTasks => prevTasks.map(t => {
       if (t.id === taskId) {
@@ -189,6 +218,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
                 onEditTask={handleEditTask}
                 onSuggestUpdate={handleSuggestUpdate}
                 onDeleteTask={handleDeleteRequest}
+                onPromoteTask={handlePromoteRequest}
                 onTaskCompleteToggle={handleTaskCompleteToggle}
                 onSubTaskToggle={handleSubTaskToggle}
               />
@@ -216,6 +246,13 @@ export default function Dashboard({ projectId }: DashboardProps) {
         onOpenChange={setIsDeleteDialogOpen}
         onConfirm={handleConfirmDelete}
         task={taskToDelete}
+      />
+
+      <PromoteTaskDialog
+        isOpen={isPromoteDialogOpen}
+        onOpenChange={setIsPromoteDialogOpen}
+        onConfirm={handleConfirmPromote}
+        task={taskToPromote}
       />
     </div>
   );
