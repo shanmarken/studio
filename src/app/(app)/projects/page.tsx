@@ -48,6 +48,7 @@ const initialProjects: Project[] = [
   },
 ];
 
+const DATA_VERSION = '1.1'; // Increment this to force a re-seed of initial data.
 
 export default function ProjectsPage() {
   const { user } = useAuth();
@@ -60,11 +61,21 @@ export default function ProjectsPage() {
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
 
   const loadData = useCallback(() => {
+    const storedVersion = localStorage.getItem('project-pulse-version');
+
     // 1. Load Projects
     let allProjects: Project[];
     try {
       const savedProjects = localStorage.getItem('project-pulse-projects');
-      allProjects = savedProjects ? JSON.parse(savedProjects) : initialProjects;
+       if (!savedProjects || storedVersion !== DATA_VERSION) {
+          allProjects = initialProjects;
+          localStorage.setItem('project-pulse-projects', JSON.stringify(initialProjects));
+          localStorage.setItem('project-pulse-tasks-1', JSON.stringify(INITIAL_TASKS));
+          localStorage.setItem('project-pulse-tasks-2', JSON.stringify([]));
+          localStorage.setItem('project-pulse-version', DATA_VERSION);
+      } else {
+        allProjects = JSON.parse(savedProjects);
+      }
     } catch (error) {
         console.error("Failed to parse projects from localStorage", error);
         allProjects = initialProjects;
@@ -72,19 +83,11 @@ export default function ProjectsPage() {
     }
     setProjects(allProjects);
 
-    // Seed initial data if it's the very first run
-    if (!localStorage.getItem('project-pulse-projects')) {
-        localStorage.setItem('project-pulse-projects', JSON.stringify(initialProjects));
-        localStorage.setItem('project-pulse-tasks-1', JSON.stringify(INITIAL_TASKS));
-        localStorage.setItem('project-pulse-tasks-2', JSON.stringify([]));
-    }
-
     // 2. Load Tasks for all projects
     const allTasks: Record<string, Task[]> = {};
     allProjects.forEach(project => {
         try {
             const savedTasks = localStorage.getItem(`project-pulse-tasks-${project.id}`);
-            // If a project exists but has no tasks yet (e.g., newly created), initialize with empty array
             allTasks[project.id] = savedTasks ? JSON.parse(savedTasks) : [];
         } catch (error) {
             console.error(`Failed to parse tasks for project ${project.id}`, error);
@@ -98,12 +101,9 @@ export default function ProjectsPage() {
   useEffect(() => {
     loadData();
 
-    // Set up an event listener to reload data when the window gets focus.
-    // This ensures that if you change task progress and navigate back, the UI updates.
     const handleFocus = () => loadData();
     window.addEventListener('focus', handleFocus);
 
-    // Clean up the event listener when the component unmounts.
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
@@ -117,17 +117,11 @@ export default function ProjectsPage() {
       lastUpdated: 'Just now',
     };
     
-    // Use a functional update to get the latest projects state
     setProjects(currentProjects => {
         const updatedProjects = [...currentProjects, newProject];
         localStorage.setItem('project-pulse-projects', JSON.stringify(updatedProjects));
-        
-        // Initialize empty tasks for the new project in localStorage
         localStorage.setItem(`project-pulse-tasks-${newProject.id}`, JSON.stringify([]));
-        
-        // After updating projects, explicitly reload all data to ensure consistency
         loadData();
-
         return updatedProjects;
     });
 
@@ -143,14 +137,12 @@ export default function ProjectsPage() {
 
   const handleConfirmDelete = () => {
     if (projectToDelete) {
-      // Delete tasks associated with the project
       localStorage.removeItem(`project-pulse-tasks-${projectToDelete.id}`);
       
       const updatedProjects = projects.filter(p => p.id !== projectToDelete.id);
       setProjects(updatedProjects);
       localStorage.setItem('project-pulse-projects', JSON.stringify(updatedProjects));
 
-      // Remove the tasks from the state as well
       setTasks(currentTasks => {
           const newTasks = { ...currentTasks };
           delete newTasks[projectToDelete.id];
@@ -180,8 +172,8 @@ export default function ProjectsPage() {
   return (
     <>
       <div className="flex flex-col min-h-screen bg-background">
-        <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm border-b px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm border-b">
+          <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-start gap-3">
               <ProjectPulseLogo />
               <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
