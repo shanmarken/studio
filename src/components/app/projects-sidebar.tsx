@@ -13,21 +13,32 @@ import {
 } from '@/components/ui/sidebar';
 import { ProjectPulseLogo } from './project-pulse-logo';
 import { Button } from '../ui/button';
-import { LogOut, Settings, FolderKanban, PanelLeft } from 'lucide-react';
+import { LogOut, Settings, FolderKanban, PanelLeft, User, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { auth } from '@/lib/firebase';
 import { UserAvatar } from './user-avatar';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../ui/dropdown-menu';
+import { useState } from 'react';
+import { SettingsSheet } from './settings-sheet';
 
 export function ProjectsSidebar() {
   const { user } = useAuth();
   const { state: sidebarState, isMobile, toggleSidebar } = useSidebar();
   const pathname = usePathname();
+  const [isSettingsSheetOpen, setIsSettingsSheetOpen] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<'team' | 'profile'>('team');
   
   const isExpanded = sidebarState === 'expanded';
 
+  const openSettingsSheet = (tab: 'team' | 'profile') => {
+    setActiveSettingsTab(tab);
+    setIsSettingsSheetOpen(true);
+  }
+
   return (
+    <>
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center justify-between">
@@ -49,18 +60,32 @@ export function ProjectsSidebar() {
             <SidebarMenuItem>
                  <Link href="/projects" className="block w-full">
                     <SidebarMenuButton tooltip="Projects" isActive={pathname.includes('/projects')}>
+                       <>
                         <FolderKanban />
                         <span>Projects</span>
+                       </>
                     </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
              <SidebarMenuItem>
-                <Link href="/settings" className="block w-full">
-                    <SidebarMenuButton tooltip="Settings" isActive={pathname.includes('/settings')}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton tooltip="Settings" isActive={isSettingsSheetOpen}>
                         <Settings />
                         <span>Settings</span>
                     </SidebarMenuButton>
-                </Link>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="right" align="start" className="ml-2">
+                      <DropdownMenuItem onClick={() => openSettingsSheet('team')}>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Team</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openSettingsSheet('profile')}>
+                        <Building className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
             </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
@@ -83,5 +108,11 @@ export function ProjectsSidebar() {
         </div>
       </SidebarFooter>
     </Sidebar>
+    <SettingsSheet
+        isOpen={isSettingsSheetOpen}
+        onOpenChange={setIsSettingsSheetOpen}
+        activeTab={activeSettingsTab}
+     />
+    </>
   );
 }

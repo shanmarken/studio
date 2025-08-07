@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { ProjectPulseLogo } from './project-pulse-logo';
 import { Button } from '../ui/button';
-import { LogOut, Settings, LayoutDashboard, BarChart3, ChevronsRightLeft } from 'lucide-react';
+import { LogOut, Settings, LayoutDashboard, BarChart3, ChevronsRightLeft, User, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { auth, db } from '@/lib/firebase';
 import { UserAvatar } from './user-avatar';
@@ -21,6 +21,8 @@ import { useEffect, useState } from 'react';
 import { collection, query, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { SettingsSheet } from './settings-sheet';
 
 interface Project {
   id: string;
@@ -37,6 +39,8 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const pathname = usePathname();
+  const [isSettingsSheetOpen, setIsSettingsSheetOpen] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<'team' | 'profile'>('team');
 
   useEffect(() => {
     if (user) {
@@ -62,7 +66,13 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
   
   const isExpanded = sidebarState === 'expanded';
 
+  const openSettingsSheet = (tab: 'team' | 'profile') => {
+    setActiveSettingsTab(tab);
+    setIsSettingsSheetOpen(true);
+  }
+
   return (
+    <>
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2">
@@ -101,12 +111,24 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
                 </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-                <Link href="/settings" className="block w-full">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <SidebarMenuButton tooltip="Settings" isActive={pathname.includes('/settings')}>
                         <Settings />
                         <span>Settings</span>
                     </SidebarMenuButton>
-                </Link>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="right" align="start" className="ml-2">
+                      <DropdownMenuItem onClick={() => openSettingsSheet('team')}>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Team</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openSettingsSheet('profile')}>
+                        <Building className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
             </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
@@ -129,5 +151,11 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
         </div>
       </SidebarFooter>
     </Sidebar>
+    <SettingsSheet
+        isOpen={isSettingsSheetOpen}
+        onOpenChange={setIsSettingsSheetOpen}
+        activeTab={activeSettingsTab}
+     />
+    </>
   );
 }
