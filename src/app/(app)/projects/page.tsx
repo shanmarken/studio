@@ -48,7 +48,7 @@ const initialProjects: Project[] = [
   },
 ];
 
-const DATA_VERSION = '1.1'; // Increment this to force a re-seed of initial data.
+const DATA_VERSION = '1.2'; // Increment this to force a re-seed of initial data.
 
 export default function ProjectsPage() {
   const { user } = useAuth();
@@ -62,28 +62,31 @@ export default function ProjectsPage() {
 
   const loadData = useCallback(() => {
     const storedVersion = localStorage.getItem('project-pulse-version');
+    const savedProjects = localStorage.getItem('project-pulse-projects');
 
-    // 1. Load Projects
     let allProjects: Project[];
-    try {
-      const savedProjects = localStorage.getItem('project-pulse-projects');
-       if (!savedProjects || storedVersion !== DATA_VERSION) {
-          allProjects = initialProjects;
-          localStorage.setItem('project-pulse-projects', JSON.stringify(initialProjects));
-          localStorage.setItem('project-pulse-tasks-1', JSON.stringify(INITIAL_TASKS));
-          localStorage.setItem('project-pulse-tasks-2', JSON.stringify([]));
-          localStorage.setItem('project-pulse-version', DATA_VERSION);
-      } else {
+
+    if (!savedProjects || storedVersion !== DATA_VERSION) {
+      allProjects = initialProjects;
+      localStorage.setItem('project-pulse-projects', JSON.stringify(initialProjects));
+      localStorage.setItem('project-pulse-tasks-1', JSON.stringify(INITIAL_TASKS));
+      localStorage.setItem('project-pulse-tasks-2', JSON.stringify([])); // Empty tasks for second project
+      initialProjects.forEach(p => {
+        if (p.id !== '1' && p.id !== '2') {
+           localStorage.setItem(`project-pulse-tasks-${p.id}`, JSON.stringify([]));
+        }
+      })
+      localStorage.setItem('project-pulse-version', DATA_VERSION);
+    } else {
+      try {
         allProjects = JSON.parse(savedProjects);
-      }
-    } catch (error) {
+      } catch (error) {
         console.error("Failed to parse projects from localStorage", error);
-        allProjects = initialProjects;
-        localStorage.removeItem('project-pulse-projects');
+        allProjects = initialProjects; // Fallback to initial
+      }
     }
     setProjects(allProjects);
 
-    // 2. Load Tasks for all projects
     const allTasks: Record<string, Task[]> = {};
     allProjects.forEach(project => {
         try {
@@ -92,7 +95,6 @@ export default function ProjectsPage() {
         } catch (error) {
             console.error(`Failed to parse tasks for project ${project.id}`, error);
             allTasks[project.id] = [];
-            localStorage.removeItem(`project-pulse-tasks-${project.id}`);
         }
     });
     setTasks(allTasks);
@@ -117,13 +119,16 @@ export default function ProjectsPage() {
       lastUpdated: 'Just now',
     };
     
-    setProjects(currentProjects => {
-        const updatedProjects = [...currentProjects, newProject];
-        localStorage.setItem('project-pulse-projects', JSON.stringify(updatedProjects));
-        localStorage.setItem(`project-pulse-tasks-${newProject.id}`, JSON.stringify([]));
-        loadData();
-        return updatedProjects;
-    });
+    const updatedProjects = [...projects, newProject];
+    setProjects(updatedProjects);
+    localStorage.setItem('project-pulse-projects', JSON.stringify(updatedProjects));
+    localStorage.setItem(`project-pulse-tasks-${newProject.id}`, JSON.stringify([]));
+    
+    // Explicitly update tasks state for the new project
+    setTasks(currentTasks => ({
+        ...currentTasks,
+        [newProject.id]: []
+    }));
 
     toast({ title: 'Project Created', description: `"${project.name}" has been successfully created.`});
   };
