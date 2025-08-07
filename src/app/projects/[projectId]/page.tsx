@@ -1,9 +1,12 @@
 import Dashboard from "@/components/app/dashboard";
+import AppLayout from "@/app/(app)/layout";
 
 export default function ProjectPage() {
   return (
-    <main className="h-full bg-background">
-      <Dashboard />
-    </main>
+    <AppLayout>
+      <main className="h-full bg-background">
+        <Dashboard />
+      </main>
+    </AppLayout>
   );
 }
