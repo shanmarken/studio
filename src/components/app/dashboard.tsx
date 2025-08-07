@@ -37,18 +37,26 @@ export default function Dashboard({ projectId }: DashboardProps) {
     if (!projectId) return;
 
     const savedTasks = localStorage.getItem(storageKey);
-    let initialTasks: Task[] = [];
+    let loadedTasks: Task[] = [];
+    
     if (savedTasks) {
-        initialTasks = JSON.parse(savedTasks, (key, value) => {
-          if ((key === 'startDate' || key === 'endDate') && value) {
-            return new Date(value);
-          }
-          return value;
-        });
+      loadedTasks = JSON.parse(savedTasks, (key, value) => {
+        if ((key === 'startDate' || key === 'endDate') && value) {
+          return new Date(value);
+        }
+        return value;
+      });
+    } else if (projectId === '1') {
+      // If no tasks are saved for the default project, load the initial ones.
+      loadedTasks = INITIAL_TASKS.map(task => ({
+        ...task,
+        startDate: new Date(task.startDate),
+        endDate: new Date(task.endDate),
+      }));
     }
     
     // Recalculate progress for tasks with subtasks on initial load
-    const tasksWithCalculatedProgress = initialTasks.map((task: Task) => {
+    const tasksWithCalculatedProgress = loadedTasks.map((task: Task) => {
       if (task.subTasks && task.subTasks.length > 0) {
         const completedSubTasks = task.subTasks.filter(st => st.completed).length;
         const newPercentComplete = Math.round((completedSubTasks / task.subTasks.length) * 100);
@@ -56,12 +64,13 @@ export default function Dashboard({ projectId }: DashboardProps) {
       }
       return task;
     });
+
     setTasks(tasksWithCalculatedProgress);
   }, [projectId, storageKey]);
 
+
   useEffect(() => {
     // Persist tasks to local storage whenever they change
-    // Make sure we don't clear out existing tasks on first load
     if (tasks.length > 0 || localStorage.getItem(storageKey)) {
         localStorage.setItem(storageKey, JSON.stringify(tasks));
     }

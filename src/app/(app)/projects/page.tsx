@@ -48,7 +48,7 @@ const initialProjects: Project[] = [
   },
 ];
 
-const DATA_VERSION = '1.2'; // Increment this to force a re-seed of initial data.
+const DATA_VERSION = '1.3'; // Increment this to force a re-seed of initial data.
 
 export default function ProjectsPage() {
   const { user } = useAuth();
