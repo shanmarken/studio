@@ -9,7 +9,6 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   useSidebar,
-  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { ProjectPulseLogo } from './project-pulse-logo';
 import { Button } from '../ui/button';
@@ -60,9 +59,6 @@ export function ProjectsSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <div className="w-full p-2 border-t border-sidebar-border">
-            <SidebarTrigger className="hidden md:flex" />
-        </div>
         <div className="w-full p-2 border-t border-sidebar-border">
             {user && (
                  <div className="flex items-center gap-2">
