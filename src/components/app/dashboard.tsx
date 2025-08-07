@@ -50,6 +50,19 @@ export default function Dashboard() {
     setIsSuggestDialogOpen(true);
   }
 
+  const handleTaskCompleteToggle = (taskId: string, isComplete: boolean) => {
+    setTasks(tasks.map(t => {
+      if (t.id === taskId) {
+        if (isComplete) {
+          return { ...t, status: 'Completed', percentComplete: 100 };
+        } else {
+          return { ...t, status: 'In Progress', percentComplete: 0 };
+        }
+      }
+      return t;
+    }));
+  }
+
   return (
     <div className="flex flex-col h-full">
       <Header onAddTask={handleAddTask} onExport={handleExport} />
@@ -64,6 +77,7 @@ export default function Dashboard() {
                 tasks={tasks.filter((task) => task.phase === phase)}
                 onEditTask={handleEditTask}
                 onSuggestUpdate={handleSuggestUpdate}
+                onTaskCompleteToggle={handleTaskCompleteToggle}
               />
             ))}
           </div>

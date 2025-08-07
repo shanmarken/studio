@@ -9,14 +9,16 @@ import { Progress } from '../ui/progress';
 import { Button } from '../ui/button';
 import { BrainCircuit, Edit } from 'lucide-react';
 import { Separator } from '../ui/separator';
+import { Checkbox } from '../ui/checkbox';
 
 type TaskCardProps = {
   task: Task;
   onEdit: (task: Task) => void;
   onSuggest: (task: Task) => void;
+  onCompleteToggle: (taskId: string, isComplete: boolean) => void;
 };
 
-export function TaskCard({ task, onEdit, onSuggest }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onSuggest, onCompleteToggle }: TaskCardProps) {
   const priorityColorMap = {
     High: 'bg-red-500/20 text-red-700 border-red-500/30 dark:text-red-400',
     Medium: 'bg-amber-500/20 text-amber-700 border-amber-500/30 dark:text-amber-400',
@@ -33,13 +35,23 @@ export function TaskCard({ task, onEdit, onSuggest }: TaskCardProps) {
   return (
     <Card className="mb-4 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow duration-300">
       <CardHeader className="p-4">
-        <CardTitle className="text-base font-semibold tracking-normal flex justify-between items-start">
-          <span>{task.name}</span>
+        <div className="flex justify-between items-start gap-2">
+           <div className="flex items-start gap-2">
+            <Checkbox
+              id={`task-${task.id}`}
+              checked={task.status === 'Completed'}
+              onCheckedChange={(checked) => onCompleteToggle(task.id, !!checked)}
+              className="mt-1"
+            />
+            <CardTitle className="text-base font-semibold tracking-normal">
+              <label htmlFor={`task-${task.id}`} className="cursor-pointer">{task.name}</label>
+            </CardTitle>
+          </div>
           <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
             {task.priority}
           </Badge>
-        </CardTitle>
-        <div className="flex items-center justify-between text-sm text-muted-foreground pt-1">
+        </div>
+        <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 pl-8">
           <div className="flex items-center gap-2">
             <UserAvatar name={task.assignedTo} />
             <span>{task.assignedTo}</span>
@@ -50,7 +62,7 @@ export function TaskCard({ task, onEdit, onSuggest }: TaskCardProps) {
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-0">
-        <div className="space-y-2 text-sm text-muted-foreground">
+        <div className="pl-8 space-y-2 text-sm text-muted-foreground">
           <p className="line-clamp-2">{task.description}</p>
           <div className="flex items-center gap-2">
             <Progress value={task.percentComplete} className="h-2" />
