@@ -17,7 +17,7 @@ export function PhaseColumn({ phase, tasks, onEditTask, onSuggestUpdate, onDelet
   return (
     <div className="flex-shrink-0 w-80 md:w-96">
       <div className="sticky top-0 bg-background/80 backdrop-blur-sm z-10 p-4 -mx-4">
-        <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+        <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center justify-center gap-2">
           {phase}
           <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
             {tasks.length}
