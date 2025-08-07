@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { ProjectPulseLogo } from './project-pulse-logo';
 import { Button } from '../ui/button';
-import { LogOut, Settings, LayoutDashboard, BarChart3, ChevronsRightLeft, User, Building } from 'lucide-react';
+import { LogOut, Settings, LayoutDashboard, BarChart3, ChevronsRightLeft, User, Building, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { auth, db } from '@/lib/firebase';
 import { UserAvatar } from './user-avatar';
@@ -92,6 +92,14 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
                     <SidebarMenuButton tooltip="Dashboard" isActive={pathname.endsWith(`/projects/${projectId}`)}>
                         <LayoutDashboard />
                         <span>Dashboard</span>
+                    </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <Link href="/mytasks" className="block w-full">
+                    <SidebarMenuButton tooltip="My Tasks" isActive={pathname.includes('/mytasks')}>
+                        <ClipboardList />
+                        <span>My Tasks</span>
                     </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>

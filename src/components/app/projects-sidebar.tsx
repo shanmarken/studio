@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { ProjectPulseLogo } from './project-pulse-logo';
 import { Button } from '../ui/button';
-import { LogOut, Settings, FolderKanban, PanelLeft, User, Building } from 'lucide-react';
+import { LogOut, Settings, FolderKanban, PanelLeft, User, Building, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { auth } from '@/lib/firebase';
 import { UserAvatar } from './user-avatar';
@@ -53,6 +53,14 @@ export function ProjectsSidebar() {
                     <SidebarMenuButton tooltip="Projects" isActive={pathname.includes('/projects')}>
                         <FolderKanban />
                         <span>Projects</span>
+                    </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                 <Link href="/mytasks" className="block w-full">
+                    <SidebarMenuButton tooltip="My Tasks" isActive={pathname.includes('/mytasks')}>
+                        <ClipboardList />
+                        <span>My Tasks</span>
                     </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
