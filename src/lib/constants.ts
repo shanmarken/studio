@@ -2,7 +2,7 @@ import { Priority, Status, Task } from './types';
 
 export const PHASES = [
   'Requirements',
-  'Software Requirements Specification (SRS)',
+  'Software Requirements Specification',
   'UI/UX Design',
   'Database Design',
   'Backend Development',
@@ -30,7 +30,6 @@ export const INITIAL_TASKS: Task[] = [
     percentComplete: 60,
     dependencies: 'DB Schema Completion',
     phase: 'Backend Development',
-    notes: 'Using JWT for authentication tokens.',
     subTasks: [
       { id: 'sub-1-1', name: 'Create user model', completed: true },
       { id: 'sub-1-2', name: 'Implement /register endpoint', completed: true },
@@ -93,7 +92,7 @@ export const INITIAL_TASKS: Task[] = [
     endDate: new Date('2024-06-28'),
     status: 'Completed',
     percentComplete: 100,
-    phase: 'Software Requirements Specification (SRS)',
+    phase: 'Software Requirements Specification',
   },
   {
     id: '6',
