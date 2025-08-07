@@ -33,6 +33,7 @@ import { Task, SubTask } from '@/lib/types';
 import { PHASES, PRIORITIES, STATUSES } from '@/lib/constants';
 import { useEffect } from 'react';
 import { Separator } from '../ui/separator';
+import { useAuth } from '@/hooks/use-auth';
 
 const subTaskSchema = z.object({
   id: z.string(),
@@ -66,6 +67,8 @@ type TaskDialogProps = {
 };
 
 export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDialogProps) {
+  const { user } = useAuth();
+  
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
@@ -101,7 +104,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
       form.reset({
         name: '',
         description: '',
-        assignedTo: '',
+        assignedTo: user?.displayName || '',
         priority: 'Medium',
         estimatedHours: 8,
         startDate: new Date(),
@@ -114,7 +117,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
         subTasks: [],
       });
     }
-  }, [taskToEdit, form, isOpen]);
+  }, [taskToEdit, form, isOpen, user]);
 
   const onSubmit = (values: TaskFormValues) => {
     onSave({
