@@ -82,10 +82,8 @@ export default function SettingsPage() {
                 </TabsList>
                 <TabsContent value="team" className="mt-4">
                     <Card>
-                    <CardHeader className="flex flex-row items-start justify-between">
-                        <div>
-                            <CardTitle>Your Team</CardTitle>
-                        </div>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Your Team</CardTitle>
                         <Button onClick={() => setIsInviteDialogOpen(true)}>
                             <UserPlus className="mr-2 h-4 w-4" />
                             Invite User
