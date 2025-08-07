@@ -60,6 +60,7 @@ export default function ProjectsPage() {
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
 
   const loadData = useCallback(() => {
+    // 1. Load Projects
     let allProjects: Project[];
     try {
       const savedProjects = localStorage.getItem('project-pulse-projects');
@@ -71,14 +72,19 @@ export default function ProjectsPage() {
     }
     setProjects(allProjects);
 
-    if (!localStorage.getItem('project-pulse-tasks-1')) {
-      localStorage.setItem('project-pulse-tasks-1', JSON.stringify(INITIAL_TASKS));
+    // Seed initial data if it's the very first run
+    if (!localStorage.getItem('project-pulse-projects')) {
+        localStorage.setItem('project-pulse-projects', JSON.stringify(initialProjects));
+        localStorage.setItem('project-pulse-tasks-1', JSON.stringify(INITIAL_TASKS));
+        localStorage.setItem('project-pulse-tasks-2', JSON.stringify([]));
     }
 
+    // 2. Load Tasks for all projects
     const allTasks: Record<string, Task[]> = {};
     allProjects.forEach(project => {
         try {
             const savedTasks = localStorage.getItem(`project-pulse-tasks-${project.id}`);
+            // If a project exists but has no tasks yet (e.g., newly created), initialize with empty array
             allTasks[project.id] = savedTasks ? JSON.parse(savedTasks) : [];
         } catch (error) {
             console.error(`Failed to parse tasks for project ${project.id}`, error);
@@ -92,29 +98,41 @@ export default function ProjectsPage() {
   useEffect(() => {
     loadData();
 
-    // Reload data when the window gets focus to ensure progress is up-to-date
+    // Set up an event listener to reload data when the window gets focus.
+    // This ensures that if you change task progress and navigate back, the UI updates.
     const handleFocus = () => loadData();
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+
+    // Clean up the event listener when the component unmounts.
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [loadData]);
 
 
   const handleCreateProject = (project: { name: string; description: string }) => {
-    const newProject = {
+    const newProject: Project = {
       ...project,
-      id: new Date().toISOString(), // Use a more unique ID
+      id: new Date().toISOString(),
       lastUpdated: 'Just now',
     };
-    const updatedProjects = [...projects, newProject];
-    setProjects(updatedProjects);
     
-    // Persist new project list immediately
-    localStorage.setItem('project-pulse-projects', JSON.stringify(updatedProjects));
-    // Initialize empty tasks for the new project
-    localStorage.setItem(`project-pulse-tasks-${newProject.id}`, JSON.stringify([]));
+    // Use a functional update to get the latest projects state
+    setProjects(currentProjects => {
+        const updatedProjects = [...currentProjects, newProject];
+        localStorage.setItem('project-pulse-projects', JSON.stringify(updatedProjects));
+        
+        // Initialize empty tasks for the new project in localStorage
+        localStorage.setItem(`project-pulse-tasks-${newProject.id}`, JSON.stringify([]));
 
-    // Reload all data to ensure consistency
-    loadData();
+        return updatedProjects;
+    });
+
+    // Update tasks state to include the new project's empty task list
+    setTasks(currentTasks => ({
+        ...currentTasks,
+        [newProject.id]: []
+    }));
 
     toast({ title: 'Project Created', description: `"${project.name}" has been successfully created.`});
   };
@@ -131,19 +149,20 @@ export default function ProjectsPage() {
       // Delete tasks associated with the project
       localStorage.removeItem(`project-pulse-tasks-${projectToDelete.id}`);
       
-      // Delete the project itself
       const updatedProjects = projects.filter(p => p.id !== projectToDelete.id);
       setProjects(updatedProjects);
-      
-      // Persist the updated project list
       localStorage.setItem('project-pulse-projects', JSON.stringify(updatedProjects));
+
+      // Remove the tasks from the state as well
+      setTasks(currentTasks => {
+          const newTasks = { ...currentTasks };
+          delete newTasks[projectToDelete.id];
+          return newTasks;
+      });
       
       toast({ title: 'Project Deleted', description: `"${projectToDelete?.name}" has been deleted.`});
       setProjectToDelete(null);
       setIsDeleteDialogOpen(false);
-
-      // Reload data to ensure UI is in sync
-      loadData();
     }
   };
 
@@ -151,7 +170,11 @@ export default function ProjectsPage() {
     const projectTasks = tasks[projectId] || [];
     if (projectTasks.length === 0) return 0;
 
-    const totalProgress = projectTasks.reduce((acc, task) => acc + (task.percentComplete || 0), 0);
+    const totalProgress = projectTasks.reduce((acc, task) => {
+        const percent = task.percentComplete || 0;
+        return acc + percent;
+    }, 0);
+    
     const averageProgress = Math.round(totalProgress / projectTasks.length);
     return isNaN(averageProgress) ? 0 : averageProgress;
   }
@@ -256,3 +279,5 @@ export default function ProjectsPage() {
     </>
   );
 }
+
+    
