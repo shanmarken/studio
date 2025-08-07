@@ -30,8 +30,8 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Task, SubTask } from '@/lib/types';
-import { PHASES, PRIORITIES, STATUSES, TEAM_MEMBERS } from '@/lib/constants';
-import { useEffect } from 'react';
+import { PHASES, PRIORITIES, STATUSES } from '@/lib/constants';
+import { useEffect, useMemo } from 'react';
 import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -64,10 +64,19 @@ type TaskDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
   onSave: (task: Task) => void;
   taskToEdit?: Task | null;
+  tasks: Task[];
 };
 
-export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDialogProps) {
+export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: TaskDialogProps) {
   const { user } = useAuth();
+
+  const teamMembers = useMemo(() => {
+    const allUsers = tasks.map(task => task.assignedTo);
+    if (user?.displayName && !allUsers.includes(user.displayName)) {
+        allUsers.push(user.displayName);
+    }
+    return [...new Set(allUsers)].sort();
+  }, [tasks, user]);
   
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -157,10 +166,10 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
               <FormField name="assignedTo" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Assigned To</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                   <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select a team member" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      {TEAM_MEMBERS.map(member => <SelectItem key={member} value={member}>{member}</SelectItem>)}
+                      {teamMembers.map(member => <SelectItem key={member} value={member}>{member}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -259,7 +268,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
                         step={5}
                         defaultValue={[field.value]}
                         onValueChange={(value) => field.onChange(value[0])}
-                        disabled={!!taskToEdit?.subTasks?.length}
+                        disabled={!!form.watch('subTasks')?.length}
                       />
                     </FormControl>
                   </FormItem>

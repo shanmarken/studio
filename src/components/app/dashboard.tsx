@@ -137,6 +137,7 @@ export default function Dashboard() {
         onOpenChange={setIsTaskDialogOpen}
         onSave={handleSaveTask}
         taskToEdit={taskToEdit}
+        tasks={tasks}
       />
       
       <SuggestUpdateDialog
