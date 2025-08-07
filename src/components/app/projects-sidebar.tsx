@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { auth } from '@/lib/firebase';
 import { UserAvatar } from './user-avatar';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 
 export function ProjectsSidebar() {
   const { user } = useAuth();
@@ -45,17 +46,21 @@ export function ProjectsSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-            <SidebarMenuItem className="mt-[10px]">
-                <SidebarMenuButton tooltip="Projects" isActive={pathname.includes('/projects')}>
-                    <FolderKanban />
-                    <span>Projects</span>
-                </SidebarMenuButton>
+            <SidebarMenuItem>
+                 <Link href="/projects" className="block w-full">
+                    <SidebarMenuButton tooltip="Projects" isActive={pathname.includes('/projects')}>
+                        <FolderKanban />
+                        <span>Projects</span>
+                    </SidebarMenuButton>
+                </Link>
             </SidebarMenuItem>
              <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Settings">
-                    <Settings />
-                    <span>Settings</span>
-                </SidebarMenuButton>
+                <Link href="/settings" className="block w-full">
+                    <SidebarMenuButton tooltip="Settings" isActive={pathname.includes('/settings')}>
+                        <Settings />
+                        <span>Settings</span>
+                    </SidebarMenuButton>
+                </Link>
             </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>

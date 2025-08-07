@@ -87,10 +87,12 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
             </SidebarMenuItem>
 
             <SidebarMenuItem className="mt-2">
-                <SidebarMenuButton tooltip="Dashboard" isActive={pathname.includes(`/projects/${projectId}`)}>
-                    <LayoutDashboard />
-                    <span>Dashboard</span>
-                </SidebarMenuButton>
+                 <Link href={`/projects/${projectId}`} className="block w-full">
+                    <SidebarMenuButton tooltip="Dashboard" isActive={pathname.endsWith(`/projects/${projectId}`)}>
+                        <LayoutDashboard />
+                        <span>Dashboard</span>
+                    </SidebarMenuButton>
+                </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
                 <SidebarMenuButton tooltip="Analytics">
@@ -99,10 +101,12 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
                 </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Settings">
-                    <Settings />
-                    <span>Settings</span>
-                </SidebarMenuButton>
+                <Link href="/settings" className="block w-full">
+                    <SidebarMenuButton tooltip="Settings" isActive={pathname.includes('/settings')}>
+                        <Settings />
+                        <span>Settings</span>
+                    </SidebarMenuButton>
+                </Link>
             </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
