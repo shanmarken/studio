@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import type { UserRole } from '@/lib/types';
 
 export interface User extends FirebaseUser {
@@ -37,27 +37,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    // Temporary fix to grant admin role to a specific user
-    if (authUser.email === 'golpbalperalventure@gamil.com') {
-      setUser({ ...authUser, role: 'admin' });
-      setLoading(false);
-      return;
-    }
-
     const userRef = doc(db, 'users', authUser.uid);
     const unsubscribe = onSnapshot(userRef, (docSnap) => {
+        let userWithRole: User = { ...authUser };
         if (docSnap.exists()) {
             const firestoreUser = docSnap.data();
-            setUser({ ...authUser, role: firestoreUser.role });
-        } else {
-            // This might happen briefly on first login before the doc is created
-            setUser(authUser);
+            userWithRole.role = firestoreUser.role;
         }
+
+        // Definitive fix to grant admin role to a specific user, overriding any other role.
+        if (authUser.email === 'golpbalperalventure@gamil.com') {
+            userWithRole.role = 'admin';
+        }
+        
+        setUser(userWithRole);
         setLoading(false);
     }, (error) => {
         console.error("Error fetching user role:", error);
-        // Set user without role if firestore fails
-        setUser(authUser);
+        
+        // Even on error, check if the user is the special admin
+        let userWithError: User = { ...authUser };
+        if (authUser.email === 'golpbalperalventure@gamil.com') {
+            userWithError.role = 'admin';
+        }
+
+        setUser(userWithError);
         setLoading(false);
     });
 
