@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { TeamMembersTable } from "@/components/app/team-members-table";
 import { useAuth } from "@/hooks/use-auth";
 import { UserPlus } from "lucide-react";
+import { useState } from "react";
+import { InviteUserDialog } from "@/components/app/invite-user-dialog";
 
 const companyProfileSchema = z.object({
     companyName: z.string().min(2, { message: "Company name must be at least 2 characters." }),
@@ -27,6 +29,7 @@ type CompanyProfileFormValues = z.infer<typeof companyProfileSchema>;
 export default function SettingsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
   const form = useForm<CompanyProfileFormValues>({
     resolver: zodResolver(companyProfileSchema),
@@ -47,11 +50,6 @@ export default function SettingsPage() {
       description: "Your company profile has been updated.",
     });
   }
-
-  // TODO: Implement Invite User functionality
-  const handleInviteUser = () => {
-    toast({ title: 'Coming Soon!', description: 'The ability to invite new users is not yet implemented.' });
-  };
 
   if (user?.role !== 'admin') {
     return (
@@ -89,7 +87,7 @@ export default function SettingsPage() {
                             <CardTitle>Your Team</CardTitle>
                             <CardDescription>Manage team members and their roles.</CardDescription>
                         </div>
-                        <Button onClick={handleInviteUser}>
+                        <Button onClick={() => setIsInviteDialogOpen(true)}>
                             <UserPlus className="mr-2 h-4 w-4" />
                             Invite User
                         </Button>
@@ -174,6 +172,7 @@ export default function SettingsPage() {
                 </TabsContent>
             </Tabs>
         </main>
+        <InviteUserDialog isOpen={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen} />
     </>
   );
 }
