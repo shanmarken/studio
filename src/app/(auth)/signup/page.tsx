@@ -63,7 +63,7 @@ export default function SignupPage() {
             await updateProfile(user, { displayName: values.fullName });
 
             let role = 'developer';
-            if (values.email.toLowerCase() === 'golpbalperalventure@gamil.com') {
+            if (values.email.toLowerCase() === 'info.globalpearlventures@gmail.com') {
                 role = 'admin';
             } else {
                 // Check if this is the first user

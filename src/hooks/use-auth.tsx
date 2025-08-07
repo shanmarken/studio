@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         // Definitive fix to grant admin role to a specific user, overriding any other role.
-        if (authUser.email === 'golpbalperalventure@gamil.com') {
+        if (authUser.email === 'info.globalpearlventures@gmail.com') {
             userWithRole.role = 'admin';
         }
         
@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Even on error, check if the user is the special admin
         let userWithError: User = { ...authUser };
-        if (authUser.email === 'golpbalperalventure@gamil.com') {
+        if (authUser.email === 'info.globalpearlventures@gmail.com') {
             userWithError.role = 'admin';
         }
 
