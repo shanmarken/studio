@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Task } from '@/lib/types';
-import { PHASES, INITIAL_TASKS } from '@/lib/constants';
+import { INITIAL_TASKS, PHASES } from '@/lib/constants';
 import { PhaseColumn } from './phase-column';
 import { Header } from './header';
 import { TaskDialog } from './task-dialog';
@@ -13,7 +13,7 @@ import { SuggestUpdateDialog } from './suggest-update-dialog';
 import { DeleteTaskDialog } from './delete-task-dialog';
 
 export default function Dashboard() {
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [isSuggestDialogOpen, setIsSuggestDialogOpen] = useState(false);
@@ -24,18 +24,33 @@ export default function Dashboard() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Simulate loading tasks, e.g. from local storage or an API
+    const savedTasks = localStorage.getItem('project-pulse-tasks');
+    const initialTasks = savedTasks ? JSON.parse(savedTasks, (key, value) => {
+      if (key === 'startDate' || key === 'endDate') {
+        return new Date(value);
+      }
+      return value;
+    }) : INITIAL_TASKS;
+
     // Recalculate progress for tasks with subtasks on initial load
-    setTasks(prevTasks =>
-      prevTasks.map(task => {
-        if (task.subTasks && task.subTasks.length > 0) {
-          const completedSubTasks = task.subTasks.filter(st => st.completed).length;
-          const newPercentComplete = Math.round((completedSubTasks / task.subTasks.length) * 100);
-          return { ...task, percentComplete: newPercentComplete };
-        }
-        return task;
-      })
-    );
+    const tasksWithCalculatedProgress = initialTasks.map((task: Task) => {
+      if (task.subTasks && task.subTasks.length > 0) {
+        const completedSubTasks = task.subTasks.filter(st => st.completed).length;
+        const newPercentComplete = Math.round((completedSubTasks / task.subTasks.length) * 100);
+        return { ...task, percentComplete: newPercentComplete };
+      }
+      return task;
+    });
+    setTasks(tasksWithCalculatedProgress);
   }, []);
+
+  useEffect(() => {
+    // Persist tasks to local storage whenever they change
+    if (tasks.length > 0) {
+        localStorage.setItem('project-pulse-tasks', JSON.stringify(tasks));
+    }
+  }, [tasks]);
 
   const handleAddTask = () => {
     setTaskToEdit(null);
@@ -54,8 +69,11 @@ export default function Dashboard() {
 
   const handleConfirmDelete = () => {
     if (taskToDelete) {
-      setTasks(prevTasks => prevTasks.filter(p => p.id !== taskToDelete.id));
-      toast({ title: 'Task Deleted', description: `"${taskToDelete?.name}" has been deleted.`});
+        setTasks(prevTasks => {
+            const newTasks = prevTasks.filter(p => p.id !== taskToDelete.id)
+            toast({ title: 'Task Deleted', description: `"${taskToDelete?.name}" has been deleted.`});
+            return newTasks
+        });
       setTaskToDelete(null);
       setIsDeleteDialogOpen(false);
     }
@@ -63,17 +81,29 @@ export default function Dashboard() {
 
   const handleSaveTask = (task: Task) => {
     const isEditing = tasks.some(t => t.id === task.id);
-    if (isEditing) {
-      setTasks(tasks.map(t => (t.id === task.id ? task : t)));
-      toast({ title: "Task Updated", description: `"${task.name}" has been successfully updated.` });
-    } else {
-      setTasks([...tasks, { ...task, id: new Date().toISOString() }]);
-      toast({ title: "Task Added", description: `"${task.name}" has been successfully added.` });
-    }
-    // After saving, re-calculate progress if subtasks exist
-    if(task.subTasks && task.subTasks.length > 0) {
-      handleSubTaskToggle(task.id, '', false, true);
-    }
+    
+    setTasks(prevTasks => {
+        let newTasks;
+        if (isEditing) {
+            newTasks = prevTasks.map(t => (t.id === task.id ? task : t));
+            toast({ title: "Task Updated", description: `"${task.name}" has been successfully updated.` });
+        } else {
+            const newTask = { ...task, id: new Date().toISOString() }
+            newTasks = [...prevTasks, newTask];
+            toast({ title: "Task Added", description: `"${newTask.name}" has been successfully added.` });
+        }
+
+        // After saving, re-calculate progress if subtasks exist
+        return newTasks.map(t => {
+            if (t.id === task.id && t.subTasks && t.subTasks.length > 0) {
+                const completedCount = t.subTasks.filter(st => st.completed).length;
+                const totalCount = t.subTasks.length;
+                const newPercentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : t.percentComplete;
+                return { ...t, percentComplete: newPercentComplete };
+            }
+            return t;
+        });
+    });
   };
 
   const handleExport = () => {
@@ -87,13 +117,11 @@ export default function Dashboard() {
   }
 
   const handleTaskCompleteToggle = (taskId: string, isComplete: boolean) => {
-    setTasks(tasks.map(t => {
+    setTasks(prevTasks => prevTasks.map(t => {
       if (t.id === taskId) {
         if (isComplete) {
           return { ...t, status: 'Completed', percentComplete: 100 };
         } else {
-          // If un-checking, revert to In Progress, but percent might need recalculating if there are subtasks.
-          // For now, we set to 0, subtask toggling will give finer control.
           return { ...t, status: 'In Progress', percentComplete: 0 };
         }
       }
@@ -101,11 +129,10 @@ export default function Dashboard() {
     }));
   }
 
-  const handleSubTaskToggle = (taskId: string, subTaskId: string, isComplete: boolean, forceRecalc = false) => {
-    setTasks(tasks.map(t => {
-      if (t.id === taskId && (t.subTasks || forceRecalc)) {
-        const subTasks = t.subTasks || [];
-        const updatedSubTasks = forceRecalc ? subTasks : subTasks.map(st => 
+  const handleSubTaskToggle = (taskId: string, subTaskId: string, isComplete: boolean) => {
+    setTasks(prevTasks => prevTasks.map(t => {
+      if (t.id === taskId && t.subTasks) {
+        const updatedSubTasks = t.subTasks.map(st => 
           st.id === subTaskId ? { ...st, completed: isComplete } : st
         );
 
@@ -120,7 +147,7 @@ export default function Dashboard() {
             } else if (newPercentComplete > 0 && t.status !== 'Blocked') {
             newStatus = 'In Progress';
             } else if (newPercentComplete === 0 && t.status === 'Completed') {
-            newStatus = 'In Progress'; // Revert from completed if a subtask is unchecked
+            newStatus = 'In Progress';
             }
         }
 
