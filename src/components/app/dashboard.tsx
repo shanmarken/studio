@@ -9,6 +9,7 @@ import { TaskDialog } from './task-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { exportToCsv } from '@/lib/utils';
 import { SuggestUpdateDialog } from './suggest-update-dialog';
+import { DeleteTaskDialog } from './delete-task-dialog';
 
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
@@ -16,6 +17,8 @@ export default function Dashboard() {
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [isSuggestDialogOpen, setIsSuggestDialogOpen] = useState(false);
   const [taskToSuggest, setTaskToSuggest] = useState<Task | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   
   const { toast } = useToast();
 
@@ -41,6 +44,20 @@ export default function Dashboard() {
   const handleEditTask = (task: Task) => {
     setTaskToEdit(task);
     setIsTaskDialogOpen(true);
+  };
+
+  const handleDeleteRequest = (task: Task) => {
+    setTaskToDelete(task);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (taskToDelete) {
+      setTasks(prevTasks => prevTasks.filter(p => p.id !== taskToDelete.id));
+      toast({ title: 'Task Deleted', description: `"${taskToDelete?.name}" has been deleted.`});
+      setTaskToDelete(null);
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   const handleSaveTask = (task: Task) => {
@@ -124,6 +141,7 @@ export default function Dashboard() {
                 tasks={tasks.filter((task) => task.phase === phase)}
                 onEditTask={handleEditTask}
                 onSuggestUpdate={handleSuggestUpdate}
+                onDeleteTask={handleDeleteRequest}
                 onTaskCompleteToggle={handleTaskCompleteToggle}
                 onSubTaskToggle={handleSubTaskToggle}
               />
@@ -144,6 +162,13 @@ export default function Dashboard() {
         isOpen={isSuggestDialogOpen}
         onOpenChange={setIsSuggestDialogOpen}
         task={taskToSuggest}
+      />
+
+      <DeleteTaskDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        task={taskToDelete}
       />
     </div>
   );

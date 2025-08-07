@@ -7,20 +7,28 @@ import { cn } from '@/lib/utils';
 import { UserAvatar } from './user-avatar';
 import { Progress } from '../ui/progress';
 import { Button } from '../ui/button';
-import { BrainCircuit, Edit } from 'lucide-react';
+import { BrainCircuit, Edit, Trash2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { MoreHorizontal } from 'lucide-react';
 
 type TaskCardProps = {
   task: Task;
   onEdit: (task: Task) => void;
   onSuggest: (task: Task) => void;
+  onDelete: (task: Task) => void;
   onCompleteToggle: (taskId: string, isComplete: boolean) => void;
   onSubTaskToggle: (taskId: string, subTaskId: string, isComplete: boolean) => void;
 };
 
-export function TaskCard({ task, onEdit, onSuggest, onCompleteToggle, onSubTaskToggle }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onSuggest, onDelete, onCompleteToggle, onSubTaskToggle }: TaskCardProps) {
   const priorityColorMap = {
     High: 'bg-red-500/20 text-red-700 border-red-500/30 dark:text-red-400',
     Medium: 'bg-amber-500/20 text-amber-700 border-amber-500/30 dark:text-amber-400',
@@ -40,7 +48,7 @@ export function TaskCard({ task, onEdit, onSuggest, onCompleteToggle, onSubTaskT
     <Card className="mb-4 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow duration-300">
       <CardHeader className="p-4">
         <div className="flex justify-between items-start gap-2">
-           <div className="flex items-start gap-2">
+           <div className="flex items-start gap-2 flex-1 min-w-0">
             <Checkbox
               id={`task-${task.id}`}
               checked={task.status === 'Completed'}
@@ -48,11 +56,11 @@ export function TaskCard({ task, onEdit, onSuggest, onCompleteToggle, onSubTaskT
               className="mt-1"
               disabled={hasSubtasks}
             />
-            <CardTitle className="text-base font-semibold tracking-normal">
+            <CardTitle className="text-base font-semibold tracking-normal flex-1 min-w-0">
               <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer", hasSubtasks && "cursor-default")}>{task.name}</label>
             </CardTitle>
           </div>
-          <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
+          <Badge className={cn('whitespace-nowrap flex-shrink-0', priorityColorMap[task.priority])}>
             {task.priority}
           </Badge>
         </div>
@@ -110,6 +118,10 @@ export function TaskCard({ task, onEdit, onSuggest, onCompleteToggle, onSubTaskT
           <Button variant="ghost" size="sm" onClick={() => onEdit(task)} className="gap-2">
             <Edit className="size-4" />
             Edit
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => onDelete(task)} className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
+            <Trash2 className="size-4" />
+            Delete
           </Button>
         </div>
       </CardContent>

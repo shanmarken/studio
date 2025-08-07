@@ -8,11 +8,12 @@ type PhaseColumnProps = {
   tasks: Task[];
   onEditTask: (task: Task) => void;
   onSuggestUpdate: (task: Task) => void;
+  onDeleteTask: (task: Task) => void;
   onTaskCompleteToggle: (taskId: string, isComplete: boolean) => void;
   onSubTaskToggle: (taskId: string, subTaskId: string, isComplete: boolean) => void;
 };
 
-export function PhaseColumn({ phase, tasks, onEditTask, onSuggestUpdate, onTaskCompleteToggle, onSubTaskToggle }: PhaseColumnProps) {
+export function PhaseColumn({ phase, tasks, onEditTask, onSuggestUpdate, onDeleteTask, onTaskCompleteToggle, onSubTaskToggle }: PhaseColumnProps) {
   return (
     <div className="flex-shrink-0 w-80 md:w-96">
       <div className="sticky top-0 bg-background/80 backdrop-blur-sm z-10 p-4 -mx-4">
@@ -29,7 +30,8 @@ export function PhaseColumn({ phase, tasks, onEditTask, onSuggestUpdate, onTaskC
             key={task.id} 
             task={task} 
             onEdit={onEditTask} 
-            onSuggest={onSuggestUpdate} 
+            onSuggest={onSuggestUpdate}
+            onDelete={onDeleteTask}
             onCompleteToggle={onTaskCompleteToggle}
             onSubTaskToggle={onSubTaskToggle}
           />
