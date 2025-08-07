@@ -122,7 +122,7 @@ export default function LoginPage() {
         <Image
           src="https://placehold.co/1920x1080.png"
           alt="Image"
-          data-ai-hint="office productivity"
+          data-ai-hint="team collaboration"
           width="1920"
           height="1080"
           className="h-full w-full object-cover dark:brightness-[0.3]"

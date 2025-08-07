@@ -173,7 +173,7 @@ export default function SignupPage() {
         <Image
           src="https://placehold.co/1920x1080.png"
           alt="Image"
-          data-ai-hint="abstract geometric"
+          data-ai-hint="modern office"
           width="1920"
           height="1080"
           className="h-full w-full object-cover dark:brightness-[0.3]"
