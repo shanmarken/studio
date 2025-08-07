@@ -57,8 +57,6 @@ export function Combobox({
         <Command>
           <CommandInput 
             placeholder={searchPlaceholder}
-            value={value}
-            onValueChange={onChange}
           />
           <CommandList>
             <CommandEmpty>{noResultsText}</CommandEmpty>
