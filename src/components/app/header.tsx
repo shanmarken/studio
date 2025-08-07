@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileDown, PlusCircle, ArrowLeft, LogOut, User as UserIcon } from 'lucide-react';
+import { FileDown, PlusCircle, ArrowLeft, LogOut, User as UserIcon, PanelLeft } from 'lucide-react';
 import { ProjectPulseLogo } from './project-pulse-logo';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
@@ -16,6 +16,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProfileDialog } from './profile-dialog';
+import { SidebarTrigger } from '../ui/sidebar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type HeaderProps = {
   onAddTask: () => void;
@@ -25,20 +27,23 @@ type HeaderProps = {
 export function Header({ onAddTask, onExport }: HeaderProps) {
   const { user } = useAuth();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
     <>
       <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm border-b">
         <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
-              <Link href="/projects" className="flex items-center gap-2 text-foreground hover:no-underline">
-                  <ArrowLeft className="h-5 w-5 md:hidden" />
-                  <ProjectPulseLogo />
-              </Link>
+              {isMobile ? <SidebarTrigger /> : (
+                <Link href="/projects" className="flex items-center gap-2 text-foreground hover:no-underline">
+                    <ArrowLeft className="h-5 w-5 md:hidden" />
+                    <ProjectPulseLogo />
+                </Link>
+              )}
               <div className="flex flex-col">
                   <Link href="/projects" className="text-xs text-muted-foreground hidden md:block hover:underline">Projects</Link>
                   <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
-                  Project Pulse
+                  Project Dashboard
                   </h1>
               </div>
             </div>

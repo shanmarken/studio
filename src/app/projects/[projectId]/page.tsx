@@ -3,6 +3,8 @@
 import Dashboard from "@/components/app/dashboard";
 import AppLayout from "@/app/(app)/layout";
 import { useParams } from 'next/navigation';
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { ProjectSidebar } from "@/components/app/project-sidebar";
 
 export default function ProjectPage() {
   const params = useParams();
@@ -43,9 +45,12 @@ export default function ProjectPage() {
 
   return (
     <AppLayout>
-      <main className="h-full bg-background">
-        <Dashboard projectId={projectId} />
-      </main>
+      <SidebarProvider>
+        <ProjectSidebar projectId={projectId} />
+        <main className="h-full bg-background flex-1">
+          <Dashboard projectId={projectId} />
+        </main>
+      </SidebarProvider>
     </AppLayout>
   );
 }
