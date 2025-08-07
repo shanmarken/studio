@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -23,15 +23,22 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, PlusCircle, Trash2 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Task } from '@/lib/types';
+import { Task, SubTask } from '@/lib/types';
 import { PHASES, PRIORITIES, STATUSES } from '@/lib/constants';
 import { useEffect } from 'react';
+import { Separator } from '../ui/separator';
+
+const subTaskSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Sub-task name cannot be empty'),
+  completed: z.boolean(),
+});
 
 const taskSchema = z.object({
   name: z.string().min(1, 'Task name is required'),
@@ -46,6 +53,7 @@ const taskSchema = z.object({
   dependencies: z.string().optional(),
   notes: z.string().optional(),
   phase: z.string().min(1, 'Phase is required'),
+  subTasks: z.array(subTaskSchema).optional(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -73,7 +81,13 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
       dependencies: '',
       notes: '',
       phase: '',
+      subTasks: [],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "subTasks",
   });
 
   useEffect(() => {
@@ -81,6 +95,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
       form.reset({
         ...taskToEdit,
         percentComplete: taskToEdit.percentComplete || 0,
+        subTasks: taskToEdit.subTasks || [],
       });
     } else {
       form.reset({
@@ -96,14 +111,16 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
         dependencies: '',
         notes: '',
         phase: PHASES[0],
+        subTasks: [],
       });
     }
-  }, [taskToEdit, form]);
+  }, [taskToEdit, form, isOpen]);
 
   const onSubmit = (values: TaskFormValues) => {
     onSave({
       ...values,
       id: taskToEdit?.id || new Date().toISOString(),
+      subTasks: values.subTasks,
     });
     onOpenChange(false);
   };
@@ -234,6 +251,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
                         step={5}
                         defaultValue={[field.value]}
                         onValueChange={(value) => field.onChange(value[0])}
+                        disabled={!!taskToEdit?.subTasks?.length}
                       />
                     </FormControl>
                   </FormItem>
@@ -253,6 +271,48 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
                 <FormMessage />
               </FormItem>
             )} />
+
+            <Separator />
+            
+            <div>
+                <FormLabel>Sub-tasks</FormLabel>
+                <div className="space-y-2 mt-2">
+                    {fields.map((field, index) => (
+                    <div key={field.id} className="flex items-center gap-2">
+                        <FormField
+                        control={form.control}
+                        name={`subTasks.${index}.name`}
+                        render={({ field }) => (
+                            <FormItem className="flex-grow">
+                            <FormControl>
+                                <Input {...field} placeholder="Sub-task name" />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => remove(index)}
+                        >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                    </div>
+                    ))}
+                    <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => append({ id: `new-${new Date().toISOString()}`, name: '', completed: false })}
+                    >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Sub-task
+                    </Button>
+                </div>
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit">Save Task</Button>

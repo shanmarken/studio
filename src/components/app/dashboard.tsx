@@ -49,9 +49,11 @@ export default function Dashboard() {
       setTasks(tasks.map(t => (t.id === task.id ? task : t)));
       toast({ title: "Task Updated", description: `"${task.name}" has been successfully updated.` });
     } else {
-      setTasks([...tasks, { ...task, subTasks: [] }]);
+      setTasks([...tasks, { ...task, id: new Date().toISOString() }]);
       toast({ title: "Task Added", description: `"${task.name}" has been successfully added.` });
     }
+    // After saving, re-calculate progress
+    handleSubTaskToggle(task.id, '', false, true);
   };
 
   const handleExport = () => {
@@ -79,26 +81,28 @@ export default function Dashboard() {
     }));
   }
 
-  const handleSubTaskToggle = (taskId: string, subTaskId: string, isComplete: boolean) => {
+  const handleSubTaskToggle = (taskId: string, subTaskId: string, isComplete: boolean, forceRecalc = false) => {
     setTasks(tasks.map(t => {
-      if (t.id === taskId && t.subTasks) {
-        const updatedSubTasks = t.subTasks.map(st => 
+      if (t.id === taskId && (t.subTasks || forceRecalc)) {
+        const subTasks = t.subTasks || [];
+        const updatedSubTasks = forceRecalc ? subTasks : subTasks.map(st => 
           st.id === subTaskId ? { ...st, completed: isComplete } : st
         );
 
         const completedCount = updatedSubTasks.filter(st => st.completed).length;
         const totalCount = updatedSubTasks.length;
-        const newPercentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+        const newPercentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : t.percentComplete;
         
         let newStatus = t.status;
-        if (newPercentComplete === 100) {
-          newStatus = 'Completed';
-        } else if (newPercentComplete > 0) {
-          newStatus = 'In Progress';
-        } else if (t.status === 'Completed') {
-          newStatus = 'In Progress'; // Revert from completed if a subtask is unchecked
+        if (totalCount > 0) {
+            if (newPercentComplete === 100) {
+            newStatus = 'Completed';
+            } else if (newPercentComplete > 0) {
+            newStatus = 'In Progress';
+            } else if (t.status === 'Completed') {
+            newStatus = 'In Progress'; // Revert from completed if a subtask is unchecked
+            }
         }
-
 
         return { ...t, subTasks: updatedSubTasks, percentComplete: newPercentComplete, status: newStatus };
       }
