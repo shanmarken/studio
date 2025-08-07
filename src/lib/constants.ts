@@ -30,7 +30,13 @@ export const INITIAL_TASKS: Task[] = [
     percentComplete: 60,
     dependencies: 'DB Schema Completion',
     phase: 'Backend Development',
-    notes: 'Using JWT for authentication tokens.'
+    notes: 'Using JWT for authentication tokens.',
+    subTasks: [
+      { id: 'sub-1-1', name: 'Create user model', completed: true },
+      { id: 'sub-1-2', name: 'Implement /register endpoint', completed: true },
+      { id: 'sub-1-3', name: 'Implement /login endpoint', completed: false },
+      { id: 'sub-1-4', name: 'Implement /logout endpoint', completed: false },
+    ]
   },
   {
     id: '2',
@@ -57,6 +63,11 @@ export const INITIAL_TASKS: Task[] = [
     status: 'Completed',
     percentComplete: 100,
     phase: 'Requirements',
+    subTasks: [
+      { id: 'sub-3-1', name: 'Draft initial feature list', completed: true },
+      { id: 'sub-3-2', name: 'Review with stakeholders', completed: true },
+      { id: 'sub-3-3', name: 'Finalize V1 scope document', completed: true },
+    ]
   },
     {
     id: '4',

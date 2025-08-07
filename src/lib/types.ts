@@ -1,6 +1,12 @@
 export type Status = 'To Do' | 'In Progress' | 'Completed' | 'Blocked';
 export type Priority = 'High' | 'Medium' | 'Low';
 
+export type SubTask = {
+  id: string;
+  name: string;
+  completed: boolean;
+};
+
 export type Task = {
   id: string;
   name: string;
@@ -15,4 +21,5 @@ export type Task = {
   dependencies?: string;
   notes?: string;
   phase: string;
+  subTasks?: SubTask[];
 };

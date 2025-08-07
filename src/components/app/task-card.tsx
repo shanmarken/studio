@@ -10,15 +10,17 @@ import { Button } from '../ui/button';
 import { BrainCircuit, Edit } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Checkbox } from '../ui/checkbox';
+import { Label } from '../ui/label';
 
 type TaskCardProps = {
   task: Task;
   onEdit: (task: Task) => void;
   onSuggest: (task: Task) => void;
   onCompleteToggle: (taskId: string, isComplete: boolean) => void;
+  onSubTaskToggle: (taskId: string, subTaskId: string, isComplete: boolean) => void;
 };
 
-export function TaskCard({ task, onEdit, onSuggest, onCompleteToggle }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onSuggest, onCompleteToggle, onSubTaskToggle }: TaskCardProps) {
   const priorityColorMap = {
     High: 'bg-red-500/20 text-red-700 border-red-500/30 dark:text-red-400',
     Medium: 'bg-amber-500/20 text-amber-700 border-amber-500/30 dark:text-amber-400',
@@ -32,6 +34,8 @@ export function TaskCard({ task, onEdit, onSuggest, onCompleteToggle }: TaskCard
     Blocked: 'bg-destructive/20 text-destructive border-destructive/30 dark:text-destructive',
   };
 
+  const hasSubtasks = task.subTasks && task.subTasks.length > 0;
+
   return (
     <Card className="mb-4 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow duration-300">
       <CardHeader className="p-4">
@@ -42,9 +46,10 @@ export function TaskCard({ task, onEdit, onSuggest, onCompleteToggle }: TaskCard
               checked={task.status === 'Completed'}
               onCheckedChange={(checked) => onCompleteToggle(task.id, !!checked)}
               className="mt-1"
+              disabled={hasSubtasks}
             />
             <CardTitle className="text-base font-semibold tracking-normal">
-              <label htmlFor={`task-${task.id}`} className="cursor-pointer">{task.name}</label>
+              <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer", hasSubtasks && "cursor-default")}>{task.name}</label>
             </CardTitle>
           </div>
           <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
@@ -62,14 +67,38 @@ export function TaskCard({ task, onEdit, onSuggest, onCompleteToggle }: TaskCard
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-0">
-        <div className="pl-8 space-y-2 text-sm text-muted-foreground">
-          <p className="line-clamp-2">{task.description}</p>
+        <div className="pl-8 space-y-4">
+          <p className="line-clamp-2 text-sm text-muted-foreground">{task.description}</p>
+          
+          {hasSubtasks && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-muted-foreground">SUB-TASKS</h4>
+              <div className="space-y-2">
+                {task.subTasks?.map(subTask => (
+                  <div key={subTask.id} className="flex items-center gap-2">
+                    <Checkbox 
+                      id={`subtask-${subTask.id}`} 
+                      checked={subTask.completed}
+                      onCheckedChange={(checked) => onSubTaskToggle(task.id, subTask.id, !!checked)}
+                    />
+                    <Label 
+                      htmlFor={`subtask-${subTask.id}`} 
+                      className={cn("text-sm font-normal", subTask.completed && "line-through text-muted-foreground")}
+                    >
+                      {subTask.name}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             <Progress value={task.percentComplete} className="h-2" />
             <span className="text-xs font-mono">{task.percentComplete}%</span>
           </div>
-          <div className="text-xs">
-            {task.startDate.toLocaleDateString()} - {task.endDate.toLocaleDateString()}
+          <div className="text-xs text-muted-foreground">
+            {new Date(task.startDate).toLocaleDateString()} - {new Date(task.endDate).toLocaleDateString()}
           </div>
         </div>
         <Separator className="my-3" />

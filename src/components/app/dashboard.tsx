@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Task } from '@/lib/types';
 import { PHASES, INITIAL_TASKS } from '@/lib/constants';
 import { PhaseColumn } from './phase-column';
@@ -19,6 +19,20 @@ export default function Dashboard() {
   
   const { toast } = useToast();
 
+  useEffect(() => {
+    // Recalculate progress for tasks with subtasks on initial load
+    setTasks(prevTasks =>
+      prevTasks.map(task => {
+        if (task.subTasks && task.subTasks.length > 0) {
+          const completedSubTasks = task.subTasks.filter(st => st.completed).length;
+          const newPercentComplete = Math.round((completedSubTasks / task.subTasks.length) * 100);
+          return { ...task, percentComplete: newPercentComplete };
+        }
+        return task;
+      })
+    );
+  }, []);
+
   const handleAddTask = () => {
     setTaskToEdit(null);
     setIsTaskDialogOpen(true);
@@ -35,7 +49,7 @@ export default function Dashboard() {
       setTasks(tasks.map(t => (t.id === task.id ? task : t)));
       toast({ title: "Task Updated", description: `"${task.name}" has been successfully updated.` });
     } else {
-      setTasks([...tasks, task]);
+      setTasks([...tasks, { ...task, subTasks: [] }]);
       toast({ title: "Task Added", description: `"${task.name}" has been successfully added.` });
     }
   };
@@ -56,12 +70,41 @@ export default function Dashboard() {
         if (isComplete) {
           return { ...t, status: 'Completed', percentComplete: 100 };
         } else {
+          // If un-checking, revert to In Progress, but percent might need recalculating if there are subtasks.
+          // For now, we set to 0, subtask toggling will give finer control.
           return { ...t, status: 'In Progress', percentComplete: 0 };
         }
       }
       return t;
     }));
   }
+
+  const handleSubTaskToggle = (taskId: string, subTaskId: string, isComplete: boolean) => {
+    setTasks(tasks.map(t => {
+      if (t.id === taskId && t.subTasks) {
+        const updatedSubTasks = t.subTasks.map(st => 
+          st.id === subTaskId ? { ...st, completed: isComplete } : st
+        );
+
+        const completedCount = updatedSubTasks.filter(st => st.completed).length;
+        const totalCount = updatedSubTasks.length;
+        const newPercentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+        
+        let newStatus = t.status;
+        if (newPercentComplete === 100) {
+          newStatus = 'Completed';
+        } else if (newPercentComplete > 0) {
+          newStatus = 'In Progress';
+        } else if (t.status === 'Completed') {
+          newStatus = 'In Progress'; // Revert from completed if a subtask is unchecked
+        }
+
+
+        return { ...t, subTasks: updatedSubTasks, percentComplete: newPercentComplete, status: newStatus };
+      }
+      return t;
+    }));
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -78,6 +121,7 @@ export default function Dashboard() {
                 onEditTask={handleEditTask}
                 onSuggestUpdate={handleSuggestUpdate}
                 onTaskCompleteToggle={handleTaskCompleteToggle}
+                onSubTaskToggle={handleSubTaskToggle}
               />
             ))}
           </div>
