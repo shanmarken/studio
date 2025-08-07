@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { TeamMembersTable } from "@/components/app/team-members-table";
+import { useAuth } from "@/hooks/use-auth";
 
 const companyProfileSchema = z.object({
     companyName: z.string().min(2, { message: "Company name must be at least 2 characters." }),
@@ -23,6 +25,7 @@ type CompanyProfileFormValues = z.infer<typeof companyProfileSchema>;
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const form = useForm<CompanyProfileFormValues>({
     resolver: zodResolver(companyProfileSchema),
@@ -44,6 +47,21 @@ export default function SettingsPage() {
     });
   }
 
+  if (user?.role !== 'admin') {
+    return (
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Access Denied</CardTitle>
+                    <CardDescription>You do not have permission to view this page.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p>Please contact your administrator if you believe this is an error.</p>
+                </CardContent>
+            </Card>
+        </main>
+    )
+  }
 
   return (
     <>
@@ -53,7 +71,7 @@ export default function SettingsPage() {
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-             <Tabs defaultValue="profile" className="w-full">
+             <Tabs defaultValue="team" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 max-w-md">
                     <TabsTrigger value="team">Team Management</TabsTrigger>
                     <TabsTrigger value="profile">Company Profile</TabsTrigger>
@@ -65,7 +83,7 @@ export default function SettingsPage() {
                         <CardDescription>Manage team members and their roles.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <p>Team management features will be here.</p>
+                        <TeamMembersTable />
                     </CardContent>
                     </Card>
                 </TabsContent>
