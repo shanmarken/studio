@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -107,6 +108,8 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
     if (taskToEdit) {
       form.reset({
         ...taskToEdit,
+        startDate: new Date(taskToEdit.startDate),
+        endDate: new Date(taskToEdit.endDate),
         percentComplete: taskToEdit.percentComplete || 0,
         subTasks: taskToEdit.subTasks || [],
       });
@@ -181,7 +184,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
               <FormField name="phase" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Phase</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select a phase" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {PHASES.map(phase => <SelectItem key={phase} value={phase}>{phase}</SelectItem>)}
@@ -195,7 +198,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
                <FormField name="priority" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Priority</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select priority" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
@@ -207,7 +210,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
               <FormField name="status" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -280,14 +283,14 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
             <FormField name="dependencies" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Dependencies</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
+                <FormControl><Input {...field} placeholder="Enter any task dependencies" /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
             <FormField name="notes" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Notes</FormLabel>
-                <FormControl><Textarea {...field} /></FormControl>
+                <FormControl><Textarea {...field} placeholder="Add any relevant notes" /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
@@ -310,6 +313,17 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
                             <FormMessage />
                             </FormItem>
                         )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name={`subTasks.${index}.completed`}
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormControl>
+                                    <Input type="hidden" {...field} />
+                                </FormControl>
+                                </FormItem>
+                            )}
                         />
                         <Button
                         type="button"

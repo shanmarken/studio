@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -69,8 +70,10 @@ export default function Dashboard() {
       setTasks([...tasks, { ...task, id: new Date().toISOString() }]);
       toast({ title: "Task Added", description: `"${task.name}" has been successfully added.` });
     }
-    // After saving, re-calculate progress
-    handleSubTaskToggle(task.id, '', false, true);
+    // After saving, re-calculate progress if subtasks exist
+    if(task.subTasks && task.subTasks.length > 0) {
+      handleSubTaskToggle(task.id, '', false, true);
+    }
   };
 
   const handleExport = () => {
@@ -114,9 +117,9 @@ export default function Dashboard() {
         if (totalCount > 0) {
             if (newPercentComplete === 100) {
             newStatus = 'Completed';
-            } else if (newPercentComplete > 0) {
+            } else if (newPercentComplete > 0 && t.status !== 'Blocked') {
             newStatus = 'In Progress';
-            } else if (t.status === 'Completed') {
+            } else if (newPercentComplete === 0 && t.status === 'Completed') {
             newStatus = 'In Progress'; // Revert from completed if a subtask is unchecked
             }
         }
