@@ -12,7 +12,11 @@ import { exportToCsv } from '@/lib/utils';
 import { SuggestUpdateDialog } from './suggest-update-dialog';
 import { DeleteTaskDialog } from './delete-task-dialog';
 
-export default function Dashboard() {
+interface DashboardProps {
+  projectId: string;
+}
+
+export default function Dashboard({ projectId }: DashboardProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
@@ -22,17 +26,23 @@ export default function Dashboard() {
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   
   const { toast } = useToast();
+  const storageKey = `project-pulse-tasks-${projectId}`;
+
 
   useEffect(() => {
-    // Simulate loading tasks, e.g. from local storage or an API
-    const savedTasks = localStorage.getItem('project-pulse-tasks');
-    const initialTasks = savedTasks ? JSON.parse(savedTasks, (key, value) => {
-      if (key === 'startDate' || key === 'endDate') {
-        return new Date(value);
-      }
-      return value;
-    }) : INITIAL_TASKS;
+    if (!projectId) return;
 
+    const savedTasks = localStorage.getItem(storageKey);
+    let initialTasks: Task[] = [];
+    if (savedTasks) {
+        initialTasks = JSON.parse(savedTasks, (key, value) => {
+          if ((key === 'startDate' || key === 'endDate') && value) {
+            return new Date(value);
+          }
+          return value;
+        });
+    }
+    
     // Recalculate progress for tasks with subtasks on initial load
     const tasksWithCalculatedProgress = initialTasks.map((task: Task) => {
       if (task.subTasks && task.subTasks.length > 0) {
@@ -43,14 +53,14 @@ export default function Dashboard() {
       return task;
     });
     setTasks(tasksWithCalculatedProgress);
-  }, []);
+  }, [projectId, storageKey]);
 
   useEffect(() => {
     // Persist tasks to local storage whenever they change
     if (tasks.length > 0) {
-        localStorage.setItem('project-pulse-tasks', JSON.stringify(tasks));
+        localStorage.setItem(storageKey, JSON.stringify(tasks));
     }
-  }, [tasks]);
+  }, [tasks, storageKey]);
 
   const handleAddTask = () => {
     setTaskToEdit(null);
@@ -71,6 +81,7 @@ export default function Dashboard() {
     if (taskToDelete) {
         setTasks(prevTasks => {
             const newTasks = prevTasks.filter(p => p.id !== taskToDelete.id)
+            localStorage.setItem(storageKey, JSON.stringify(newTasks));
             toast({ title: 'Task Deleted', description: `"${taskToDelete?.name}" has been deleted.`});
             return newTasks
         });
@@ -107,7 +118,11 @@ export default function Dashboard() {
   };
 
   const handleExport = () => {
-    exportToCsv(tasks, 'project_pulse_tasks.csv');
+    if (tasks.length === 0) {
+      toast({ variant: 'destructive', title: "Export failed", description: "There are no tasks to export." });
+      return;
+    }
+    exportToCsv(tasks, `project_${projectId}_tasks.csv`);
     toast({ title: "Export successful", description: "Your tasks have been exported to CSV." });
   };
 
@@ -122,7 +137,9 @@ export default function Dashboard() {
         if (isComplete) {
           return { ...t, status: 'Completed', percentComplete: 100 };
         } else {
-          return { ...t, status: 'In Progress', percentComplete: 0 };
+          // If un-checking, revert to a sensible default, not just 0%
+          const newPercent = (t.subTasks && t.subTasks.length > 0) ? t.percentComplete : 0;
+          return { ...t, status: 'In Progress', percentComplete: newPercent };
         }
       }
       return t;

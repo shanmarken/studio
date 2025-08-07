@@ -26,7 +26,14 @@ import { Task } from '@/lib/types';
 import { INITIAL_TASKS } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
 
-const initialProjects = [
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  lastUpdated: string;
+}
+
+const initialProjects: Project[] = [
   {
     id: '1',
     name: 'Project Pulse',
@@ -48,45 +55,85 @@ export default function ProjectsPage() {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
-  const [projects, setProjects] = useState(initialProjects);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Record<string, Task[]>>({});
 
   useEffect(() => {
-    const savedTasks = localStorage.getItem('project-pulse-tasks');
-    const allTasks = savedTasks ? JSON.parse(savedTasks) : INITIAL_TASKS;
+    // Load projects from local storage or use initials
+    const savedProjects = localStorage.getItem('project-pulse-projects');
+    const allProjects: Project[] = savedProjects ? JSON.parse(savedProjects) : initialProjects;
+    setProjects(allProjects);
+
+    // Initialize default tasks for the first project if none exist
+    if (!localStorage.getItem('project-pulse-tasks-1')) {
+      localStorage.setItem('project-pulse-tasks-1', JSON.stringify(INITIAL_TASKS));
+    }
+
+    // Load tasks for all projects
+    const allTasks: Record<string, Task[]> = {};
+    allProjects.forEach(project => {
+        const savedTasks = localStorage.getItem(`project-pulse-tasks-${project.id}`);
+        if (savedTasks) {
+            allTasks[project.id] = JSON.parse(savedTasks);
+        } else {
+            allTasks[project.id] = [];
+        }
+    });
     setTasks(allTasks);
+
   }, []);
+
+  // Persist projects to local storage
+  useEffect(() => {
+    if (projects.length > 0) {
+      localStorage.setItem('project-pulse-projects', JSON.stringify(projects));
+    }
+  }, [projects]);
+
 
   const handleCreateProject = (project: { name: string; description: string }) => {
     const newProject = {
       ...project,
-      id: (projects.length + 1).toString(),
+      id: new Date().toISOString(), // Use a more unique ID
       lastUpdated: 'Just now',
     };
     setProjects(prevProjects => [...prevProjects, newProject]);
+    // Initialize empty tasks for the new project
+    setTasks(prevTasks => ({...prevTasks, [newProject.id]: [] }));
+    localStorage.setItem(`project-pulse-tasks-${newProject.id}`, JSON.stringify([]));
+
     toast({ title: 'Project Created', description: `"${project.name}" has been successfully created.`});
   };
 
-  const handleDeleteRequest = (e: React.MouseEvent, projectId: string) => {
+  const handleDeleteRequest = (e: React.MouseEvent, project: Project) => {
     e.preventDefault();
     e.stopPropagation();
-    setProjectToDelete(projectId);
+    setProjectToDelete(project);
     setIsDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = () => {
     if (projectToDelete) {
-      const project = projects.find(p => p.id === projectToDelete);
-      setProjects(prevProjects => prevProjects.filter(p => p.id !== projectToDelete));
-      toast({ title: 'Project Deleted', description: `"${project?.name}" has been deleted.`});
+      // Delete tasks associated with the project
+      localStorage.removeItem(`project-pulse-tasks-${projectToDelete.id}`);
+      setTasks(prevTasks => {
+          const newTasks = {...prevTasks};
+          delete newTasks[projectToDelete.id];
+          return newTasks;
+      });
+
+      // Delete the project itself
+      setProjects(prevProjects => prevProjects.filter(p => p.id !== projectToDelete.id));
+      
+      toast({ title: 'Project Deleted', description: `"${projectToDelete?.name}" has been deleted.`});
       setProjectToDelete(null);
       setIsDeleteDialogOpen(false);
     }
   };
 
   const getProjectProgress = (projectId: string) => {
-    const projectTasks = tasks.filter(t => t.id.startsWith(projectId)); // A simple way to associate tasks
+    const projectTasks = tasks[projectId] || [];
     if (projectTasks.length === 0) return 0;
 
     const totalProgress = projectTasks.reduce((acc, task) => acc + task.percentComplete, 0);
@@ -154,7 +201,7 @@ export default function ProjectsPage() {
                       variant="ghost" 
                       size="icon" 
                       className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-50 group-hover/card:opacity-100 transition-opacity"
-                      onClick={(e) => handleDeleteRequest(e, project.id)}
+                      onClick={(e) => handleDeleteRequest(e, project)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
