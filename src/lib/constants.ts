@@ -16,6 +16,14 @@ export const PHASES = [
 export const STATUSES: Status[] = ['To Do', 'In Progress', 'Completed', 'Blocked'];
 export const PRIORITIES: Priority[] = ['High', 'Medium', 'Low'];
 
+export const TEAM_MEMBERS = [
+    'John Doe',
+    'Jane Smith',
+    'Alice Johnson',
+    'Charlie Brown',
+    'Grace Hopper',
+];
+
 export const INITIAL_TASKS: Task[] = [
   {
     id: '1',

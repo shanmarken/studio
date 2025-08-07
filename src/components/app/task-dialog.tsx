@@ -30,7 +30,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Task, SubTask } from '@/lib/types';
-import { PHASES, PRIORITIES, STATUSES } from '@/lib/constants';
+import { PHASES, PRIORITIES, STATUSES, TEAM_MEMBERS } from '@/lib/constants';
 import { useEffect } from 'react';
 import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/use-auth';
@@ -107,7 +107,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
         assignedTo: user?.displayName || '',
         priority: 'Medium',
         estimatedHours: 8,
-        startDate: new Date(),
+        startDate: new date(),
         endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
         status: 'To Do',
         percentComplete: 0,
@@ -157,7 +157,12 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit }: TaskDia
               <FormField name="assignedTo" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Assigned To</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Select a team member" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {TEAM_MEMBERS.map(member => <SelectItem key={member} value={member}>{member}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )} />
