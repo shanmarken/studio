@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ProfileDialog } from '@/components/app/profile-dialog';
 import { CreateProjectDialog } from '@/components/app/create-project-dialog';
 import { DeleteProjectDialog } from '@/components/app/delete-project-dialog';
@@ -59,18 +59,15 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
 
-  useEffect(() => {
-    // Load projects from local storage or use initials
+  const loadData = useCallback(() => {
     const savedProjects = localStorage.getItem('project-pulse-projects');
     const allProjects: Project[] = savedProjects ? JSON.parse(savedProjects) : initialProjects;
     setProjects(allProjects);
 
-    // Initialize default tasks for the first project if none exist
     if (!localStorage.getItem('project-pulse-tasks-1')) {
       localStorage.setItem('project-pulse-tasks-1', JSON.stringify(INITIAL_TASKS));
     }
 
-    // Load tasks for all projects
     const allTasks: Record<string, Task[]> = {};
     allProjects.forEach(project => {
         const savedTasks = localStorage.getItem(`project-pulse-tasks-${project.id}`);
@@ -81,8 +78,16 @@ export default function ProjectsPage() {
         }
     });
     setTasks(allTasks);
-
   }, []);
+
+  useEffect(() => {
+    loadData();
+
+    // Reload data when the window gets focus to ensure progress is up-to-date
+    const handleFocus = () => loadData();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadData]);
 
   // Persist projects to local storage
   useEffect(() => {
@@ -136,7 +141,7 @@ export default function ProjectsPage() {
     const projectTasks = tasks[projectId] || [];
     if (projectTasks.length === 0) return 0;
 
-    const totalProgress = projectTasks.reduce((acc, task) => acc + task.percentComplete, 0);
+    const totalProgress = projectTasks.reduce((acc, task) => acc + (task.percentComplete || 0), 0);
     return Math.round(totalProgress / projectTasks.length);
   }
   
