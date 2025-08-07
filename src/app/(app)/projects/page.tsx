@@ -7,7 +7,7 @@ import { LogOut, PlusCircle, User as UserIcon, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { ProjectPulseLogo } from '@/components/app/project-pulse-logo';
 import { useAuth } from '@/hooks/use-auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { UserAvatar } from '@/components/app/user-avatar';
 import {
   DropdownMenu,
@@ -25,108 +25,150 @@ import { useToast } from '@/hooks/use-toast';
 import { Task } from '@/lib/types';
 import { INITIAL_TASKS } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, writeBatch, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { LoaderCircle } from 'lucide-react';
 
 interface Project {
   id: string;
   name: string;
   description: string;
-  lastUpdated: string;
+  lastUpdated: any;
+  taskCount: number;
+  completedTaskCount: number;
 }
 
-const initialProjects: Project[] = [
-  {
-    id: '1',
-    name: 'Project Pulse',
-    description: 'A next-gen project management tool to keep your development lifecycle on track.',
-    lastUpdated: '2 days ago',
-  },
-  {
-    id: '2',
-    name: 'Website Redesign',
-    description: 'A complete overhaul of the corporate website and branding.',
-    lastUpdated: '5 days ago',
-  },
-];
 
 export default function ProjectsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [tasks, setTasks] = useState<Record<string, Task[]>>({});
+  const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(() => {
-    const savedProjects = localStorage.getItem('project-pulse-projects');
+  const seedInitialData = useCallback(async (userId: string) => {
+      const batch = writeBatch(db);
 
-    let allProjects: Project[];
+      // Create "Project Pulse" project
+      const projectRef = doc(collection(db, 'users', userId, 'projects'));
+      batch.set(projectRef, {
+        name: 'Project Pulse',
+        description: 'A next-gen project management tool to keep your development lifecycle on track.',
+        createdAt: serverTimestamp(),
+        ownerId: userId,
+      });
 
-    if (!savedProjects) {
-      allProjects = initialProjects;
-      localStorage.setItem('project-pulse-projects', JSON.stringify(initialProjects));
-      localStorage.setItem('project-pulse-tasks-1', JSON.stringify(INITIAL_TASKS));
-      localStorage.setItem('project-pulse-tasks-2', JSON.stringify([])); // Empty tasks for second project
-      initialProjects.forEach(p => {
-        if (p.id !== '1' && p.id !== '2') {
-           localStorage.setItem(`project-pulse-tasks-${p.id}`, JSON.stringify([]));
-        }
-      })
-    } else {
-      try {
-        allProjects = JSON.parse(savedProjects);
-      } catch (error) {
-        console.error("Failed to parse projects from localStorage", error);
-        allProjects = initialProjects; // Fallback to initial
-      }
-    }
-    setProjects(allProjects);
+      // Add initial tasks to the project
+      INITIAL_TASKS.forEach(task => {
+        const taskRef = doc(collection(db, 'users', userId, 'projects', projectRef.id, 'tasks'));
+        batch.set(taskRef, {
+          ...task,
+          startDate: task.startDate.toISOString(),
+          endDate: task.endDate.toISOString(),
+        });
+      });
+      
+      await batch.commit();
+      
+      const userStateRef = doc(db, 'userStates', userId);
+      await setDoc(userStateRef, { hasBeenSeeded: true });
 
-    const allTasks: Record<string, Task[]> = {};
-    allProjects.forEach(project => {
-        try {
-            const savedTasks = localStorage.getItem(`project-pulse-tasks-${project.id}`);
-            allTasks[project.id] = savedTasks ? JSON.parse(savedTasks) : (project.id === '1' ? INITIAL_TASKS : []);
-        } catch (error) {
-            console.error(`Failed to parse tasks for project ${project.id}`, error);
-            allTasks[project.id] = [];
-        }
-    });
-    setTasks(allTasks);
+      return [{
+          id: projectRef.id,
+          name: 'Project Pulse',
+          description: 'A next-gen project management tool to keep your development lifecycle on track.',
+          lastUpdated: 'Just now',
+          taskCount: INITIAL_TASKS.length,
+          completedTaskCount: INITIAL_TASKS.filter(t => t.status === 'Completed').length,
+      }];
   }, []);
 
+  const loadData = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+
+    try {
+        const userStateRef = doc(db, 'userStates', user.uid);
+        const userStateSnap = await getDoc(userStateRef);
+
+        let fetchedProjects: Project[] = [];
+
+        if (!userStateSnap.exists() || !userStateSnap.data()?.hasBeenSeeded) {
+            fetchedProjects = await seedInitialData(user.uid);
+        } else {
+            const projectsQuery = query(collection(db, 'users', user.uid, 'projects'));
+            const querySnapshot = await getDocs(projectsQuery);
+            
+            const projectsDataPromises = querySnapshot.docs.map(async (doc) => {
+                const projectData = doc.data();
+                
+                const tasksRef = collection(db, 'users', user.uid, 'projects', doc.id, 'tasks');
+                const tasksSnapshot = await getDocs(tasksRef);
+                const taskCount = tasksSnapshot.size;
+                const completedTaskCount = tasksSnapshot.docs.filter(d => d.data().status === 'Completed').length;
+                
+                return {
+                    id: doc.id,
+                    name: projectData.name,
+                    description: projectData.description,
+                    lastUpdated: projectData.createdAt, // Or a more dynamic field if you add one
+                    taskCount,
+                    completedTaskCount
+                };
+            });
+
+            fetchedProjects = await Promise.all(projectsDataPromises);
+        }
+        
+        setProjects(fetchedProjects);
+    } catch (error) {
+        console.error("Error loading projects: ", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to load projects. Please try again later.'
+        });
+    } finally {
+        setLoading(false);
+    }
+  }, [user, toast, seedInitialData]);
+
   useEffect(() => {
-    loadData();
-
-    const handleFocus = () => loadData();
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [loadData]);
+    if (!authLoading) {
+      loadData();
+    }
+  }, [authLoading, loadData]);
 
 
-  const handleCreateProject = (project: { name: string; description: string }) => {
-    const newProject: Project = {
-      ...project,
-      id: new Date().toISOString(),
-      lastUpdated: 'Just now',
-    };
-    
-    const updatedProjects = [...projects, newProject];
-    setProjects(updatedProjects);
-    localStorage.setItem('project-pulse-projects', JSON.stringify(updatedProjects));
-    localStorage.setItem(`project-pulse-tasks-${newProject.id}`, JSON.stringify([]));
-    
-    // Explicitly update tasks state for the new project
-    setTasks(currentTasks => ({
-        ...currentTasks,
-        [newProject.id]: []
-    }));
+  const handleCreateProject = async (project: { name: string; description: string }) => {
+    if (!user) return;
 
-    toast({ title: 'Project Created', description: `"${project.name}" has been successfully created.`});
+    try {
+        const docRef = await addDoc(collection(db, "users", user.uid, "projects"), {
+          ...project,
+          createdAt: serverTimestamp(),
+          ownerId: user.uid,
+        });
+
+        const newProject: Project = {
+          ...project,
+          id: docRef.id,
+          lastUpdated: 'Just now',
+          taskCount: 0,
+          completedTaskCount: 0,
+        };
+        setProjects(prev => [...prev, newProject]);
+        toast({ title: 'Project Created', description: `"${project.name}" has been successfully created.`});
+    } catch (error) {
+        console.error("Error creating project: ", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to create project.'
+        });
+    }
   };
 
   const handleDeleteRequest = (e: React.MouseEvent, project: Project) => {
@@ -136,39 +178,45 @@ export default function ProjectsPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    if (projectToDelete) {
-      localStorage.removeItem(`project-pulse-tasks-${projectToDelete.id}`);
-      
-      const updatedProjects = projects.filter(p => p.id !== projectToDelete.id);
-      setProjects(updatedProjects);
-      localStorage.setItem('project-pulse-projects', JSON.stringify(updatedProjects));
+  const handleConfirmDelete = async () => {
+    if (!projectToDelete || !user) return;
+    
+    try {
+        await deleteDoc(doc(db, 'users', user.uid, 'projects', projectToDelete.id));
 
-      setTasks(currentTasks => {
-          const newTasks = { ...currentTasks };
-          delete newTasks[projectToDelete.id];
-          return newTasks;
-      });
-      
-      toast({ title: 'Project Deleted', description: `"${projectToDelete?.name}" has been deleted.`});
-      setProjectToDelete(null);
-      setIsDeleteDialogOpen(false);
+        const updatedProjects = projects.filter(p => p.id !== projectToDelete.id);
+        setProjects(updatedProjects);
+        
+        toast({ title: 'Project Deleted', description: `"${projectToDelete?.name}" has been deleted.`});
+    } catch (error) {
+        console.error("Error deleting project: ", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to delete project.'
+        });
+    } finally {
+        setProjectToDelete(null);
+        setIsDeleteDialogOpen(false);
     }
   };
 
-  const getProjectProgress = (projectId: string) => {
-    const projectTasks = tasks[projectId] || [];
-    if (projectTasks.length === 0) return 0;
-
-    const totalProgress = projectTasks.reduce((acc, task) => {
-        const percent = task.percentComplete || 0;
-        return acc + percent;
-    }, 0);
-    
-    const averageProgress = Math.round(totalProgress / projectTasks.length);
-    return isNaN(averageProgress) ? 0 : averageProgress;
+  const getProjectProgress = (project: Project) => {
+    if (project.taskCount === 0) return 0;
+    return Math.round((project.completedTaskCount / project.taskCount) * 100);
   }
   
+
+  if (loading || authLoading) {
+      return (
+        <div className="flex h-screen items-center justify-center">
+            <div className="flex items-center space-x-2">
+                <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+                <span className="text-lg font-medium text-muted-foreground">Loading Projects...</span>
+            </div>
+        </div>
+      )
+  }
 
   return (
     <>
@@ -220,7 +268,7 @@ export default function ProjectsPage() {
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {projects.map((project) => {
-              const progress = getProjectProgress(project.id);
+              const progress = getProjectProgress(project);
               return (
                 <Link href={`/projects/${project.id}`} key={project.id} className="block hover:no-underline group/card">
                   <Card className="hover:shadow-lg hover:-translate-y-1 transition-all h-full flex flex-col relative">
@@ -243,7 +291,7 @@ export default function ProjectsPage() {
                         </div>
                     </CardContent>
                     <div className="p-4 pt-0 text-xs text-muted-foreground">
-                        Last updated {project.lastUpdated}
+                        Last updated {project.lastUpdated?.toDate().toLocaleDateString() || 'Just now'}
                     </div>
                   </Card>
                 </Link>

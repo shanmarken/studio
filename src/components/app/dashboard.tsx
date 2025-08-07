@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Task } from '@/lib/types';
-import { INITIAL_TASKS, PHASES } from '@/lib/constants';
+import { PHASES } from '@/lib/constants';
 import { PhaseColumn } from './phase-column';
 import { Header } from './header';
 import { TaskDialog } from './task-dialog';
@@ -12,13 +12,19 @@ import { exportToCsv } from '@/lib/utils';
 import { SuggestUpdateDialog } from './suggest-update-dialog';
 import { DeleteTaskDialog } from './delete-task-dialog';
 import { PromoteTaskDialog } from './promote-task-dialog';
+import { useAuth } from '@/hooks/use-auth';
+import { collection, query, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { LoaderCircle } from 'lucide-react';
 
 interface DashboardProps {
   projectId: string;
 }
 
 export default function Dashboard({ projectId }: DashboardProps) {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [isSuggestDialogOpen, setIsSuggestDialogOpen] = useState(false);
@@ -27,65 +33,51 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isPromoteDialogOpen, setIsPromoteDialogOpen] = useState(false);
   const [taskToPromote, setTaskToPromote] = useState<Task | null>(null);
-
   
   const { toast } = useToast();
-  const storageKey = `project-pulse-tasks-${projectId}`;
-
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!user || !projectId) return;
 
-    let loadedTasks: Task[] = [];
-    try {
-        const savedTasks = localStorage.getItem(storageKey);
-        if (savedTasks) {
-            loadedTasks = JSON.parse(savedTasks, (key, value) => {
-                if ((key === 'startDate' || key === 'endDate') && value) {
-                return new Date(value);
-                }
-                return value;
-            });
-        } else if (projectId === '1') {
-            // If no tasks are saved for the default project, load the initial ones.
-            loadedTasks = INITIAL_TASKS.map(task => ({
-                ...task,
-                startDate: new Date(task.startDate),
-                endDate: new Date(task.endDate),
-            }));
+    setLoading(true);
+    const tasksQuery = query(collection(db, 'users', user.uid, 'projects', projectId, 'tasks'));
+
+    const unsubscribe = onSnapshot(tasksQuery, (querySnapshot) => {
+      const loadedTasks: Task[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        loadedTasks.push({
+          ...data,
+          id: doc.id,
+          startDate: new Date(data.startDate),
+          endDate: new Date(data.endDate),
+        } as Task);
+      });
+      
+      const tasksWithCalculatedProgress = loadedTasks.map((task: Task) => {
+        if (task.subTasks && task.subTasks.length > 0) {
+          const completedSubTasks = task.subTasks.filter(st => st.completed).length;
+          const newPercentComplete = Math.round((completedSubTasks / task.subTasks.length) * 100);
+          return { ...task, percentComplete: newPercentComplete };
         }
-    } catch (e) {
-        console.error("Failed to load or parse tasks:", e);
-        // Fallback for the main project if storage is corrupted
-        if (projectId === '1') {
-             loadedTasks = INITIAL_TASKS.map(task => ({
-                ...task,
-                startDate: new Date(task.startDate),
-                endDate: new Date(task.endDate),
-            }));
-        }
-    }
-    
-    // Recalculate progress for tasks with subtasks on initial load
-    const tasksWithCalculatedProgress = loadedTasks.map((task: Task) => {
-      if (task.subTasks && task.subTasks.length > 0) {
-        const completedSubTasks = task.subTasks.filter(st => st.completed).length;
-        const newPercentComplete = Math.round((completedSubTasks / task.subTasks.length) * 100);
-        return { ...task, percentComplete: newPercentComplete };
-      }
-      return task;
+        return task;
+      });
+
+      setTasks(tasksWithCalculatedProgress);
+      setLoading(false);
+    }, (error) => {
+      console.error("Failed to load tasks:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load tasks. Please try again later.'
+      });
+      setLoading(false);
     });
 
-    setTasks(tasksWithCalculatedProgress);
-  }, [projectId, storageKey]);
+    return () => unsubscribe();
+  }, [user, projectId, toast]);
 
-
-  useEffect(() => {
-    // Persist tasks to local storage whenever they change, but only if they've been loaded
-    if (tasks.length > 0 || localStorage.getItem(storageKey)) {
-        localStorage.setItem(storageKey, JSON.stringify(tasks));
-    }
-  }, [tasks, storageKey]);
 
   const handleAddTask = () => {
     setTaskToEdit(null);
@@ -102,49 +94,61 @@ export default function Dashboard({ projectId }: DashboardProps) {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    if (taskToDelete) {
+  const handleConfirmDelete = async () => {
+    if (taskToDelete && user) {
         const taskName = taskToDelete.name;
-        setTasks(prevTasks => {
-            const newTasks = prevTasks.filter(p => p.id !== taskToDelete.id)
-            return newTasks
-        });
-      toast({ title: 'Task Deleted', description: `"${taskName}" has been deleted.`});
+        try {
+            const taskRef = doc(db, 'users', user.uid, 'projects', projectId, 'tasks', taskToDelete.id);
+            await deleteDoc(taskRef);
+            toast({ title: 'Task Deleted', description: `"${taskName}" has been deleted.`});
+        } catch (error) {
+            console.error("Error deleting task: ", error);
+            toast({ variant: 'destructive', title: "Error", description: "Failed to delete task." });
+        }
       setTaskToDelete(null);
       setIsDeleteDialogOpen(false);
     }
   };
 
-  const handleSaveTask = (task: Task) => {
-    const isEditing = tasks.some(t => t.id === task.id);
+  const handleSaveTask = async (task: Task) => {
+    if (!user) return;
+
+    const isEditing = !!task.id && tasks.some(t => t.id === task.id);
     let taskName = task.name;
     
-    setTasks(prevTasks => {
-        let newTasks;
+    // Recalculate progress if subtasks exist
+    if (task.subTasks && task.subTasks.length > 0) {
+        const completedCount = task.subTasks.filter(st => st.completed).length;
+        const totalCount = task.subTasks.length;
+        task.percentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : task.percentComplete;
+    }
+
+    const taskData = {
+        ...task,
+        startDate: task.startDate.toISOString(),
+        endDate: task.endDate.toISOString(),
+    };
+
+    try {
         if (isEditing) {
-            newTasks = prevTasks.map(t => (t.id === task.id ? task : t));
+            const taskRef = doc(db, 'users', user.uid, 'projects', projectId, 'tasks', task.id);
+            // @ts-ignore
+            delete taskData.id;
+            await updateDoc(taskRef, taskData);
+            toast({ title: "Task Updated", description: `"${taskName}" has been successfully updated.` });
         } else {
-            const newTaskWithId = { ...task, id: new Date().toISOString() }
-            taskName = newTaskWithId.name;
-            newTasks = [...prevTasks, newTaskWithId];
+            // @ts-ignore
+            delete taskData.id;
+            const docRef = await addDoc(collection(db, 'users', user.uid, 'projects', projectId, 'tasks'), {
+                ...taskData,
+                createdAt: serverTimestamp()
+            });
+            taskName = task.name;
+            toast({ title: "Task Added", description: `"${taskName}" has been successfully added.` });
         }
-
-        // After saving, re-calculate progress if subtasks exist
-        return newTasks.map(t => {
-            if (t.id === task.id && t.subTasks && t.subTasks.length > 0) {
-                const completedCount = t.subTasks.filter(st => st.completed).length;
-                const totalCount = t.subTasks.length;
-                const newPercentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : t.percentComplete;
-                return { ...t, percentComplete: newPercentComplete };
-            }
-            return t;
-        });
-    });
-
-    if (isEditing) {
-        toast({ title: "Task Updated", description: `"${taskName}" has been successfully updated.` });
-    } else {
-        toast({ title: "Task Added", description: `"${taskName}" has been successfully added.` });
+    } catch (error) {
+        console.error("Error saving task: ", error);
+        toast({ variant: 'destructive', title: "Error", description: "Failed to save task." });
     }
   };
 
@@ -167,67 +171,95 @@ export default function Dashboard({ projectId }: DashboardProps) {
     setIsPromoteDialogOpen(true);
   }
 
-  const handleConfirmPromote = (task: Task, newPhase: string) => {
-    const newTask: Task = {
+  const handleConfirmPromote = async (task: Task, newPhase: string) => {
+    if (!user) return;
+    const newTaskData: Omit<Task, 'id'> = {
         ...task,
-        id: new Date().toISOString(), // New ID for the cloned task
         phase: newPhase,
         status: 'To Do',
         percentComplete: 0,
-        // Reset sub-tasks to be incomplete
         subTasks: task.subTasks?.map(st => ({...st, completed: false})),
     };
+    // @ts-ignore
+    delete newTaskData.id; 
 
-    setTasks(prevTasks => [...prevTasks, newTask]);
+    try {
+        await addDoc(collection(db, 'users', user.uid, 'projects', projectId, 'tasks'), {
+            ...newTaskData,
+            startDate: newTaskData.startDate.toISOString(),
+            endDate: newTaskData.endDate.toISOString(),
+            createdAt: serverTimestamp(),
+            promotedFrom: task.id
+        });
 
-    toast({
-        title: 'Task Promoted',
-        description: `A new task "${newTask.name}" was created in the ${newPhase} phase.`
+        toast({
+            title: 'Task Promoted',
+            description: `A new task "${newTaskData.name}" was created in the ${newPhase} phase.`
+        });
+    } catch (error) {
+        console.error("Error promoting task:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to promote task.' });
+    }
+  };
+
+  const handleTaskCompleteToggle = async (taskId: string, isComplete: boolean) => {
+    if (!user) return;
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const taskRef = doc(db, 'users', user.uid, 'projects', projectId, 'tasks', taskId);
+    let updateData: Partial<Task> = {};
+    if (isComplete) {
+      updateData = { status: 'Completed', percentComplete: 100 };
+    } else {
+      const newPercent = (task.subTasks && task.subTasks.length > 0) ? task.percentComplete : 0;
+      updateData = { status: 'In Progress', percentComplete: newPercent };
+    }
+    await updateDoc(taskRef, updateData);
+  }
+
+  const handleSubTaskToggle = async (taskId: string, subTaskId: string, isComplete: boolean) => {
+    if (!user) return;
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || !task.subTasks) return;
+
+    const updatedSubTasks = task.subTasks.map(st => 
+        st.id === subTaskId ? { ...st, completed: isComplete } : st
+    );
+
+    const completedCount = updatedSubTasks.filter(st => st.completed).length;
+    const totalCount = updatedSubTasks.length;
+    const newPercentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : task.percentComplete;
+    
+    let newStatus = task.status;
+    if (totalCount > 0) {
+        if (newPercentComplete === 100) {
+        newStatus = 'Completed';
+        } else if (newPercentComplete > 0 && task.status !== 'Blocked') {
+        newStatus = 'In Progress';
+        } else if (newPercentComplete === 0 && task.status === 'Completed') {
+        newStatus = 'In Progress';
+        }
+    }
+    
+    const taskRef = doc(db, 'users', user.uid, 'projects', projectId, 'tasks', taskId);
+    await updateDoc(taskRef, {
+        subTasks: updatedSubTasks,
+        percentComplete: newPercentComplete,
+        status: newStatus
     });
   };
 
-  const handleTaskCompleteToggle = (taskId: string, isComplete: boolean) => {
-    setTasks(prevTasks => prevTasks.map(t => {
-      if (t.id === taskId) {
-        if (isComplete) {
-          return { ...t, status: 'Completed', percentComplete: 100 };
-        } else {
-          // If un-checking, revert to a sensible default, not just 0%
-          const newPercent = (t.subTasks && t.subTasks.length > 0) ? t.percentComplete : 0;
-          return { ...t, status: 'In Progress', percentComplete: newPercent };
-        }
-      }
-      return t;
-    }));
+  if (loading) {
+     return (
+       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+         <div className="flex items-center space-x-2">
+           <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+           <span className="text-lg font-medium text-muted-foreground">Loading Tasks...</span>
+         </div>
+       </div>
+     );
   }
-
-  const handleSubTaskToggle = (taskId: string, subTaskId: string, isComplete: boolean) => {
-    setTasks(prevTasks => prevTasks.map(t => {
-      if (t.id === taskId && t.subTasks) {
-        const updatedSubTasks = t.subTasks.map(st => 
-          st.id === subTaskId ? { ...st, completed: isComplete } : st
-        );
-
-        const completedCount = updatedSubTasks.filter(st => st.completed).length;
-        const totalCount = updatedSubTasks.length;
-        const newPercentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : t.percentComplete;
-        
-        let newStatus = t.status;
-        if (totalCount > 0) {
-            if (newPercentComplete === 100) {
-            newStatus = 'Completed';
-            } else if (newPercentComplete > 0 && t.status !== 'Blocked') {
-            newStatus = 'In Progress';
-            } else if (newPercentComplete === 0 && t.status === 'Completed') {
-            newStatus = 'In Progress';
-            }
-        }
-
-        return { ...t, subTasks: updatedSubTasks, percentComplete: newPercentComplete, status: newStatus };
-      }
-      return t;
-    }));
-  };
 
   return (
     <div className="flex flex-col h-full">
