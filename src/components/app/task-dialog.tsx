@@ -34,6 +34,7 @@ import { PHASES, PRIORITIES, STATUSES } from '@/lib/constants';
 import { useEffect, useMemo } from 'react';
 import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/use-auth';
+import { Combobox } from '../ui/combobox';
 
 const subTaskSchema = z.object({
   id: z.string(),
@@ -75,7 +76,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
     if (user?.displayName && !allUsers.includes(user.displayName)) {
         allUsers.push(user.displayName);
     }
-    return [...new Set(allUsers)].sort();
+    return [...new Set(allUsers)].sort().map(name => ({ value: name, label: name }));
   }, [tasks, user]);
   
   const form = useForm<TaskFormValues>({
@@ -164,14 +165,16 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
             )} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField name="assignedTo" control={form.control} render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Assigned To</FormLabel>
-                   <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select a team member" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      {teamMembers.map(member => <SelectItem key={member} value={member}>{member}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                    <Combobox
+                        options={teamMembers}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Select or type a name..."
+                        searchPlaceholder="Search team members..."
+                        noResultsText="No team members found."
+                    />
                   <FormMessage />
                 </FormItem>
               )} />
