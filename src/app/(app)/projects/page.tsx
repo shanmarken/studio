@@ -60,8 +60,15 @@ export default function ProjectsPage() {
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
 
   const loadData = useCallback(() => {
-    const savedProjects = localStorage.getItem('project-pulse-projects');
-    const allProjects: Project[] = savedProjects ? JSON.parse(savedProjects) : initialProjects;
+    let allProjects: Project[];
+    try {
+      const savedProjects = localStorage.getItem('project-pulse-projects');
+      allProjects = savedProjects ? JSON.parse(savedProjects) : initialProjects;
+    } catch (error) {
+        console.error("Failed to parse projects from localStorage", error);
+        allProjects = initialProjects;
+        localStorage.removeItem('project-pulse-projects');
+    }
     setProjects(allProjects);
 
     if (!localStorage.getItem('project-pulse-tasks-1')) {
@@ -70,11 +77,13 @@ export default function ProjectsPage() {
 
     const allTasks: Record<string, Task[]> = {};
     allProjects.forEach(project => {
-        const savedTasks = localStorage.getItem(`project-pulse-tasks-${project.id}`);
-        if (savedTasks) {
-            allTasks[project.id] = JSON.parse(savedTasks);
-        } else {
+        try {
+            const savedTasks = localStorage.getItem(`project-pulse-tasks-${project.id}`);
+            allTasks[project.id] = savedTasks ? JSON.parse(savedTasks) : [];
+        } catch (error) {
+            console.error(`Failed to parse tasks for project ${project.id}`, error);
             allTasks[project.id] = [];
+            localStorage.removeItem(`project-pulse-tasks-${project.id}`);
         }
     });
     setTasks(allTasks);
@@ -89,13 +98,6 @@ export default function ProjectsPage() {
     return () => window.removeEventListener('focus', handleFocus);
   }, [loadData]);
 
-  // Persist projects to local storage
-  useEffect(() => {
-    if (projects.length > 0) {
-      localStorage.setItem('project-pulse-projects', JSON.stringify(projects));
-    }
-  }, [projects]);
-
 
   const handleCreateProject = (project: { name: string; description: string }) => {
     const newProject = {
@@ -103,10 +105,16 @@ export default function ProjectsPage() {
       id: new Date().toISOString(), // Use a more unique ID
       lastUpdated: 'Just now',
     };
-    setProjects(prevProjects => [...prevProjects, newProject]);
+    const updatedProjects = [...projects, newProject];
+    setProjects(updatedProjects);
+    
+    // Persist new project list immediately
+    localStorage.setItem('project-pulse-projects', JSON.stringify(updatedProjects));
     // Initialize empty tasks for the new project
-    setTasks(prevTasks => ({...prevTasks, [newProject.id]: [] }));
     localStorage.setItem(`project-pulse-tasks-${newProject.id}`, JSON.stringify([]));
+
+    // Reload all data to ensure consistency
+    loadData();
 
     toast({ title: 'Project Created', description: `"${project.name}" has been successfully created.`});
   };
@@ -122,18 +130,20 @@ export default function ProjectsPage() {
     if (projectToDelete) {
       // Delete tasks associated with the project
       localStorage.removeItem(`project-pulse-tasks-${projectToDelete.id}`);
-      setTasks(prevTasks => {
-          const newTasks = {...prevTasks};
-          delete newTasks[projectToDelete.id];
-          return newTasks;
-      });
-
+      
       // Delete the project itself
-      setProjects(prevProjects => prevProjects.filter(p => p.id !== projectToDelete.id));
+      const updatedProjects = projects.filter(p => p.id !== projectToDelete.id);
+      setProjects(updatedProjects);
+      
+      // Persist the updated project list
+      localStorage.setItem('project-pulse-projects', JSON.stringify(updatedProjects));
       
       toast({ title: 'Project Deleted', description: `"${projectToDelete?.name}" has been deleted.`});
       setProjectToDelete(null);
       setIsDeleteDialogOpen(false);
+
+      // Reload data to ensure UI is in sync
+      loadData();
     }
   };
 
@@ -142,7 +152,8 @@ export default function ProjectsPage() {
     if (projectTasks.length === 0) return 0;
 
     const totalProgress = projectTasks.reduce((acc, task) => acc + (task.percentComplete || 0), 0);
-    return Math.round(totalProgress / projectTasks.length);
+    const averageProgress = Math.round(totalProgress / projectTasks.length);
+    return isNaN(averageProgress) ? 0 : averageProgress;
   }
   
 
