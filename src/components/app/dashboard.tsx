@@ -36,23 +36,34 @@ export default function Dashboard({ projectId }: DashboardProps) {
   useEffect(() => {
     if (!projectId) return;
 
-    const savedTasks = localStorage.getItem(storageKey);
     let loadedTasks: Task[] = [];
-    
-    if (savedTasks) {
-      loadedTasks = JSON.parse(savedTasks, (key, value) => {
-        if ((key === 'startDate' || key === 'endDate') && value) {
-          return new Date(value);
+    try {
+        const savedTasks = localStorage.getItem(storageKey);
+        if (savedTasks) {
+            loadedTasks = JSON.parse(savedTasks, (key, value) => {
+                if ((key === 'startDate' || key === 'endDate') && value) {
+                return new Date(value);
+                }
+                return value;
+            });
+        } else if (projectId === '1') {
+            // If no tasks are saved for the default project, load the initial ones.
+            loadedTasks = INITIAL_TASKS.map(task => ({
+                ...task,
+                startDate: new Date(task.startDate),
+                endDate: new Date(task.endDate),
+            }));
         }
-        return value;
-      });
-    } else if (projectId === '1') {
-      // If no tasks are saved for the default project, load the initial ones.
-      loadedTasks = INITIAL_TASKS.map(task => ({
-        ...task,
-        startDate: new Date(task.startDate),
-        endDate: new Date(task.endDate),
-      }));
+    } catch (e) {
+        console.error("Failed to load or parse tasks:", e);
+        // Fallback for the main project if storage is corrupted
+        if (projectId === '1') {
+             loadedTasks = INITIAL_TASKS.map(task => ({
+                ...task,
+                startDate: new Date(task.startDate),
+                endDate: new Date(task.endDate),
+            }));
+        }
     }
     
     // Recalculate progress for tasks with subtasks on initial load
@@ -70,7 +81,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
 
 
   useEffect(() => {
-    // Persist tasks to local storage whenever they change
+    // Persist tasks to local storage whenever they change, but only if they've been loaded
     if (tasks.length > 0 || localStorage.getItem(storageKey)) {
         localStorage.setItem(storageKey, JSON.stringify(tasks));
     }
@@ -93,12 +104,12 @@ export default function Dashboard({ projectId }: DashboardProps) {
 
   const handleConfirmDelete = () => {
     if (taskToDelete) {
+        const taskName = taskToDelete.name;
         setTasks(prevTasks => {
             const newTasks = prevTasks.filter(p => p.id !== taskToDelete.id)
-            localStorage.setItem(storageKey, JSON.stringify(newTasks));
-            toast({ title: 'Task Deleted', description: `"${taskToDelete?.name}" has been deleted.`});
             return newTasks
         });
+      toast({ title: 'Task Deleted', description: `"${taskName}" has been deleted.`});
       setTaskToDelete(null);
       setIsDeleteDialogOpen(false);
     }
@@ -106,16 +117,16 @@ export default function Dashboard({ projectId }: DashboardProps) {
 
   const handleSaveTask = (task: Task) => {
     const isEditing = tasks.some(t => t.id === task.id);
+    let taskName = task.name;
     
     setTasks(prevTasks => {
         let newTasks;
         if (isEditing) {
             newTasks = prevTasks.map(t => (t.id === task.id ? task : t));
-            toast({ title: "Task Updated", description: `"${task.name}" has been successfully updated.` });
         } else {
-            const newTask = { ...task, id: new Date().toISOString() }
-            newTasks = [...prevTasks, newTask];
-            toast({ title: "Task Added", description: `"${newTask.name}" has been successfully added.` });
+            const newTaskWithId = { ...task, id: new Date().toISOString() }
+            taskName = newTaskWithId.name;
+            newTasks = [...prevTasks, newTaskWithId];
         }
 
         // After saving, re-calculate progress if subtasks exist
@@ -129,6 +140,12 @@ export default function Dashboard({ projectId }: DashboardProps) {
             return t;
         });
     });
+
+    if (isEditing) {
+        toast({ title: "Task Updated", description: `"${taskName}" has been successfully updated.` });
+    } else {
+        toast({ title: "Task Added", description: `"${taskName}" has been successfully added.` });
+    }
   };
 
   const handleExport = () => {
