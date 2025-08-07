@@ -171,7 +171,7 @@ export default function SignupPage() {
       </div>
       <div className="hidden bg-muted lg:block">
         <Image
-          src="https://placehold.co/1920x1080.png"
+          src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1920&auto=format&fit=crop"
           alt="Image"
           data-ai-hint="modern office"
           width="1920"
