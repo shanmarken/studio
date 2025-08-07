@@ -79,7 +79,7 @@ export default function ProjectsPage() {
           id: projectRef.id,
           name: 'Project Pulse',
           description: 'A next-gen project management tool to keep your development lifecycle on track.',
-          lastUpdated: 'Just now',
+          lastUpdated: new Date(),
           taskCount: INITIAL_TASKS.length,
           completedTaskCount: INITIAL_TASKS.filter(t => t.status === 'Completed').length,
       }];
@@ -155,7 +155,7 @@ export default function ProjectsPage() {
         const newProject: Project = {
           ...project,
           id: docRef.id,
-          lastUpdated: 'Just now',
+          lastUpdated: new Date(),
           taskCount: 0,
           completedTaskCount: 0,
         };
@@ -205,6 +205,17 @@ export default function ProjectsPage() {
     if (project.taskCount === 0) return 0;
     return Math.round((project.completedTaskCount / project.taskCount) * 100);
   }
+  
+  const getFormattedDate = (lastUpdated: any) => {
+    if (!lastUpdated) return 'Just now';
+    if (lastUpdated.toDate) {
+      return lastUpdated.toDate().toLocaleDateString();
+    }
+    if (lastUpdated instanceof Date) {
+      return lastUpdated.toLocaleDateString();
+    }
+    return 'Just now';
+  };
   
 
   if (loading || authLoading) {
@@ -291,7 +302,7 @@ export default function ProjectsPage() {
                         </div>
                     </CardContent>
                     <div className="p-4 pt-0 text-xs text-muted-foreground">
-                        Last updated {project.lastUpdated?.toDate().toLocaleDateString() || 'Just now'}
+                        Last updated {getFormattedDate(project.lastUpdated)}
                     </div>
                   </Card>
                 </Link>
