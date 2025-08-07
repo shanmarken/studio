@@ -48,8 +48,6 @@ const initialProjects: Project[] = [
   },
 ];
 
-const DATA_VERSION = '1.3'; // Increment this to force a re-seed of initial data.
-
 export default function ProjectsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -61,12 +59,11 @@ export default function ProjectsPage() {
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
 
   const loadData = useCallback(() => {
-    const storedVersion = localStorage.getItem('project-pulse-version');
     const savedProjects = localStorage.getItem('project-pulse-projects');
 
     let allProjects: Project[];
 
-    if (!savedProjects || storedVersion !== DATA_VERSION) {
+    if (!savedProjects) {
       allProjects = initialProjects;
       localStorage.setItem('project-pulse-projects', JSON.stringify(initialProjects));
       localStorage.setItem('project-pulse-tasks-1', JSON.stringify(INITIAL_TASKS));
@@ -76,7 +73,6 @@ export default function ProjectsPage() {
            localStorage.setItem(`project-pulse-tasks-${p.id}`, JSON.stringify([]));
         }
       })
-      localStorage.setItem('project-pulse-version', DATA_VERSION);
     } else {
       try {
         allProjects = JSON.parse(savedProjects);
@@ -91,7 +87,7 @@ export default function ProjectsPage() {
     allProjects.forEach(project => {
         try {
             const savedTasks = localStorage.getItem(`project-pulse-tasks-${project.id}`);
-            allTasks[project.id] = savedTasks ? JSON.parse(savedTasks) : [];
+            allTasks[project.id] = savedTasks ? JSON.parse(savedTasks) : (project.id === '1' ? INITIAL_TASKS : []);
         } catch (error) {
             console.error(`Failed to parse tasks for project ${project.id}`, error);
             allTasks[project.id] = [];
