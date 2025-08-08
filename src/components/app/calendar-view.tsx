@@ -2,12 +2,12 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, getDocs, collectionGroup, getDoc } from 'firebase/firestore';
+import { collection, query, getDocs, collectionGroup, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoaderCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LoaderCircle, ChevronLeft, ChevronRight, Search, Plus, Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '../ui/badge';
@@ -15,6 +15,9 @@ import { isSameDay, addDays, startOfWeek, format, eachDayOfInterval, addWeeks, s
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
+import { Input } from '../ui/input';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { TaskDialog } from './task-dialog';
 
 interface TaskWithProject extends Task {
   projectName: string;
@@ -24,9 +27,12 @@ interface TaskWithProject extends Task {
 export function CalendarView() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<TaskWithProject[]>([]);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
   const weekStartsOn = 1; // Monday
 
@@ -41,33 +47,35 @@ export function CalendarView() {
       if (!user) return;
       setLoading(true);
       try {
-        const projectsQuery = collectionGroup(db, 'tasks');
-        const tasksSnapshot = await getDocs(projectsQuery);
-        
-        const tasksData = await Promise.all(
-            tasksSnapshot.docs.map(async (taskDoc) => {
-              const taskData = taskDoc.data();
-              const projectRef = taskDoc.ref.parent.parent;
-              if (!projectRef) return null;
-  
-              const projectSnap = await getDoc(projectRef);
-              const projectName = projectSnap.exists() ? projectSnap.data()?.name : 'Unknown Project';
-              
-              return {
-                ...(taskData as Task),
-                id: taskDoc.id,
-                projectName: projectName,
-                projectId: projectRef.id,
-                startDate: new Date(taskData.startDate),
-                endDate: new Date(taskData.endDate),
-              };
-            })
-          );
+        const tasksQuery = collectionGroup(db, 'tasks');
+        const unsubscribe = onSnapshot(tasksQuery, async (tasksSnapshot) => {
+            const tasksData = await Promise.all(
+                tasksSnapshot.docs.map(async (taskDoc) => {
+                  const taskData = taskDoc.data();
+                  const projectRef = taskDoc.ref.parent.parent;
+                  if (!projectRef) return null;
+      
+                  const projectSnap = await getDoc(projectRef);
+                  const projectName = projectSnap.exists() ? projectSnap.data()?.name : 'Unknown Project';
+                  
+                  return {
+                    ...(taskData as Task),
+                    id: taskDoc.id,
+                    projectName: projectName,
+                    projectId: projectRef.id,
+                    startDate: new Date(taskData.startDate),
+                    endDate: new Date(taskData.endDate),
+                  };
+                })
+            );
+            setTasks(tasksData.filter(Boolean) as TaskWithProject[]);
+            setAllTasks(tasksData.filter(Boolean) as Task[]);
+            setLoading(false);
+        });
 
-        setTasks(tasksData.filter(Boolean) as TaskWithProject[]);
+        return () => unsubscribe();
       } catch (error) {
         console.error("Error fetching tasks:", error);
-      } finally {
         setLoading(false);
       }
     };
@@ -98,9 +106,57 @@ export function CalendarView() {
     }
   }
 
+  const handleAddTask = () => {
+    setTaskToEdit(null);
+    setIsTaskDialogOpen(true);
+  };
+
+  const handleSaveTask = (task: Task) => {
+    // This is a placeholder. You'll need to implement the actual save logic.
+    console.log("Saving task", task);
+  };
+
+
   return (
+    <>
     <div className="flex flex-col h-full bg-muted/40 text-foreground p-4 sm:p-6 lg:p-8 pt-0">
-        <header className="flex items-start justify-between py-4 border-b border-border flex-shrink-0 gap-8">
+         <div className="py-4 border-b border-border/50 flex-shrink-0">
+             <div className='flex items-center justify-between gap-4'>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => setCurrentDate(new Date())}>Today</Button>
+                    <Button variant="outline" onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                     <Button variant="outline" onClick={() => setCurrentDate(addWeeks(currentDate, 1))}>
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <h2 className="text-xl font-semibold">{format(startOfCurrentWeek, 'MMMM yyyy')}</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Search tasks..." className="pl-8" />
+                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline">
+                                Week <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem>Day</DropdownMenuItem>
+                            <DropdownMenuItem>Week</DropdownMenuItem>
+                            <DropdownMenuItem>Month</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button onClick={handleAddTask}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Task
+                    </Button>
+                </div>
+             </div>
+         </div>
+        <header className="flex items-start justify-between py-4 border-b border-border/50 flex-shrink-0 gap-8">
             <Card className="flex-1 h-64 bg-background">
                 <CardHeader>
                     <CardTitle>Tasks Due: {format(selectedDate, 'MMMM d')}</CardTitle>
@@ -188,5 +244,13 @@ export function CalendarView() {
             )}
         </main>
     </div>
+    <TaskDialog
+        isOpen={isTaskDialogOpen}
+        onOpenChange={setIsTaskDialogOpen}
+        onSave={handleSaveTask}
+        taskToEdit={taskToEdit}
+        tasks={allTasks}
+      />
+    </>
   );
 }
