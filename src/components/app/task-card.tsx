@@ -129,6 +129,15 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     <Progress value={task.percentComplete} className="h-2" />
                     <span className="text-xs font-mono">{task.percentComplete}%</span>
                 </div>
+                
+                {!task.projectName && (
+                     <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5" />
+                            <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
+                        </div>
+                    </div>
+                )}
 
                 <Separator/>
 
@@ -161,3 +170,4 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
     </Collapsible>
   );
 }
+
