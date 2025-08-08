@@ -35,9 +35,9 @@ import { PHASES, PRIORITIES, STATUSES } from '@/lib/constants';
 import { useEffect, useMemo, useState } from 'react';
 import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/use-auth';
-import { Combobox } from '../ui/combobox';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Combobox } from '../ui/combobox';
 
 const subTaskSchema = z.object({
   id: z.string(),
