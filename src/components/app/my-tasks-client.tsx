@@ -3,14 +3,13 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, getDocs, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task, Status } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoaderCircle, Filter, Search } from 'lucide-react';
 import Link from 'next/link';
-import { TaskCard } from './task-card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -44,45 +43,64 @@ export function MyTasksClient() {
   const [taskToPromote, setTaskToPromote] = useState<Task | null>(null);
 
   useEffect(() => {
-    const fetchTasks = async () => {
-      if (!user || !user.uid) return;
+    if (!user || !user.uid) return;
 
-      setLoading(true);
-      try {
-        const projectsQuery = query(collection(db, 'projects'));
-        const projectsSnapshot = await getDocs(projectsQuery);
-        const myTasks: TaskWithProject[] = [];
+    setLoading(true);
 
-        for (const projectDoc of projectsSnapshot.docs) {
-          const tasksQuery = query(
-            collection(db, `projects/${projectDoc.id}/tasks`),
-            where('assignedToId', '==', user.uid)
-          );
-          const tasksSnapshot = await getDocs(tasksQuery);
-          
-          tasksSnapshot.forEach(taskDoc => {
-            const taskData = taskDoc.data();
-            myTasks.push({
-              ...(taskData as Task),
-              id: taskDoc.id,
-              projectName: projectDoc.data().name,
-              projectId: projectDoc.id,
-              startDate: new Date(taskData.startDate),
-              endDate: new Date(taskData.endDate),
-            });
-          });
+    const projectsQuery = query(collection(db, 'projects'));
+    const unsubscribeProjects = onSnapshot(projectsQuery, (projectsSnapshot) => {
+        const projects = projectsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
+        const unsubscribes: (()=>void)[] = [];
+
+        let allTasks: TaskWithProject[] = [];
+        let projectsProcessed = 0;
+
+        if (projects.length === 0) {
+            setTasks([]);
+            setLoading(false);
+            return;
         }
-        
-        setTasks(myTasks);
-      } catch (error) {
-        console.error("Error fetching tasks:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchTasks();
+        projects.forEach(project => {
+            const tasksQuery = query(collection(db, `projects/${project.id}/tasks`), where('assignedToId', '==', user.uid));
+            const unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnapshot) => {
+                const projectTasks = tasksSnapshot.docs.map(taskDoc => {
+                    const taskData = taskDoc.data();
+                    return {
+                        ...(taskData as Task),
+                        id: taskDoc.id,
+                        projectName: project.name,
+                        projectId: project.id,
+                        startDate: new Date(taskData.startDate),
+                        endDate: new Date(taskData.endDate),
+                    };
+                });
+
+                // Filter out old tasks for this project and add new ones
+                allTasks = allTasks.filter(t => t.projectId !== project.id);
+                allTasks.push(...projectTasks);
+                setTasks([...allTasks]);
+
+            }, (error) => {
+                 console.error(`Error fetching tasks for project ${project.id}:`, error);
+            });
+            unsubscribes.push(unsubscribeTasks);
+        });
+
+        setLoading(false);
+
+        return () => {
+            unsubscribes.forEach(unsub => unsub());
+        };
+    }, (error) => {
+        console.error("Error fetching projects:", error);
+        setLoading(false);
+    });
+
+    return () => unsubscribeProjects();
+
   }, [user]);
+
 
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => 
@@ -265,7 +283,7 @@ export function MyTasksClient() {
     <>
         <header className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b">
             <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:p-8">
-                <h1 className="text-2xl font-bold">Kanban</h1>
+                <h1 className="text-2xl font-bold">My Tasks</h1>
                 <div className="flex items-center gap-2">
                     <Button variant="outline">
                         <Filter className="mr-2 h-4 w-4" />
@@ -305,15 +323,20 @@ export function MyTasksClient() {
                                 </div>
                                 <div className="h-full space-y-4">
                                     {columnTasks.map(task => (
-                                       <div key={task.id} className="bg-background rounded-lg shadow-sm border p-4">
+                                       <Card key={task.id} className="bg-background shadow-sm border p-4">
                                             <p className="text-sm font-medium">{task.name}</p>
                                             <p className="text-xs text-muted-foreground mt-1">In project: <Link href={`/projects/${task.projectId}`} className="text-primary hover:underline">{task.projectName}</Link></p>
                                             <div className="mt-2 flex items-center gap-2">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${task.priority === 'High' ? 'bg-red-100 text-red-800' : task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{task.priority}</span>
                                                 <span className="text-xs text-muted-foreground">Due: {task.endDate.toLocaleDateString()}</span>
                                             </div>
-                                       </div>
+                                       </Card>
                                     ))}
+                                    {columnTasks.length === 0 && (
+                                        <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                                            No tasks here.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )
