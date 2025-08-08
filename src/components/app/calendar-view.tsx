@@ -100,7 +100,7 @@ export function CalendarView() {
                     {format(startOfCurrentWeek, 'MMMM yyyy')}
                 </h2>
             </div>
-             <div className="w-80">
+             <div className="w-72">
                  <Calendar
                     mode="single"
                     selected={currentDate}
