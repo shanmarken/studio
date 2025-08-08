@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, collectionGroup, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDoc, onSnapshot, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, collectionGroup } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task, Status } from '@/lib/types';
@@ -26,12 +26,15 @@ interface TaskWithProject extends Task {
   projectId: string;
 }
 
-export function MyTasksClient() {
+interface MyTasksClientProps {
+    searchTerm: string;
+}
+
+export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [tasks, setTasks] = useState<TaskWithProject[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
 
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
@@ -272,76 +275,54 @@ export function MyTasksClient() {
 
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-        <header className="flex-shrink-0 bg-background/90 backdrop-blur-sm border-b">
-            <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-                <h1 className="text-2xl font-bold">My Tasks</h1>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline">
-                        <Filter className="mr-2 h-4 w-4" />
-                        Filters
-                    </Button>
-                    <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Subject or reference" 
-                            className="pl-8" 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                </div>
-            </div>
-        </header>
-        <div className="flex-1 flex flex-col min-h-0 overflow-x-auto">
-          <main className="flex-1 bg-muted/40 py-4 sm:py-6 lg:py-8">
-              {loading ? (
-                  <div className="flex h-full items-center justify-center">
-                      <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-              ) : (
-                  <div className="px-4 sm:px-6 lg:px-8 h-full">
-                    <div className="flex gap-8 h-full">
-                        {STATUS_COLUMNS.map(status => {
-                            const columnTasks = tasksByStatus[status] || [];
-                            return (
-                                <div key={status} className="flex-shrink-0 w-80 md:w-96 flex flex-col">
-                                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
-                                        <div className={`w-3 h-3 rounded-full ${statusColorMap[status]}`}></div>
-                                        <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
-                                            {status}
-                                        </h2>
-                                        <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                                            {columnTasks.length}
-                                        </span>
-                                    </div>
-                                    <div className="space-y-4 overflow-y-auto flex-1 pr-2 -mr-2">
-                                        {columnTasks.map(task => (
-                                        <TaskCard 
-                                            key={task.id} 
-                                            task={task} 
-                                            onEdit={handleEditTask}
-                                            onSuggest={handleSuggestUpdate}
-                                            onDelete={handleDeleteRequest}
-                                            onPromote={handlePromoteRequest}
-                                            onCompleteToggle={handleTaskCompleteToggle}
-                                            onSubTaskToggle={handleSubTaskToggle}
-                                        />
-                                        ))}
-                                        {columnTasks.length === 0 && (
-                                            <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
-                                                No tasks here.
-                                            </div>
-                                        )}
-                                    </div>
+    <div className="flex flex-col flex-1 min-h-0">
+        <main className="flex-1 bg-muted/40 flex overflow-x-auto">
+          {loading ? (
+              <div className="flex h-full w-full items-center justify-center">
+                  <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+              </div>
+          ) : (
+              <div className="flex-1 flex p-4 sm:p-6 lg:p-8">
+                <div className="flex gap-8 h-full">
+                    {STATUS_COLUMNS.map(status => {
+                        const columnTasks = tasksByStatus[status] || [];
+                        return (
+                            <div key={status} className="flex-shrink-0 w-80 md:w-96 flex flex-col">
+                                <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                                    <div className={`w-3 h-3 rounded-full ${statusColorMap[status]}`}></div>
+                                    <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
+                                        {status}
+                                    </h2>
+                                    <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                                        {columnTasks.length}
+                                    </span>
                                 </div>
-                            )
-                        })}
-                    </div>
-                  </div>
-              )}
-          </main>
-        </div>
+                                <div className="space-y-4 overflow-y-auto flex-1 pr-2 -mr-2">
+                                    {columnTasks.map(task => (
+                                    <TaskCard 
+                                        key={task.id} 
+                                        task={task} 
+                                        onEdit={handleEditTask}
+                                        onSuggest={handleSuggestUpdate}
+                                        onDelete={handleDeleteRequest}
+                                        onPromote={handlePromoteRequest}
+                                        onCompleteToggle={handleTaskCompleteToggle}
+                                        onSubTaskToggle={handleSubTaskToggle}
+                                    />
+                                    ))}
+                                    {columnTasks.length === 0 && (
+                                        <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                                            No tasks here.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+              </div>
+          )}
+        </main>
 
         <TaskDialog
             isOpen={isTaskDialogOpen}
@@ -372,5 +353,4 @@ export function MyTasksClient() {
         />
     </div>
   );
-
-    
+}

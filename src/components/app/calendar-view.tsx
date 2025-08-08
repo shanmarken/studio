@@ -93,11 +93,6 @@ export function CalendarView() {
 
   return (
     <>
-      <header className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b">
-        <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:p-8">
-          <h1 className="text-2xl font-bold">Calendar</h1>
-        </div>
-      </header>
       <main className="flex-1 p-4 sm:p-6 lg:p-8">
         {loading ? (
             <div className="flex h-64 items-center justify-center">
