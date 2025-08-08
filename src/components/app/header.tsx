@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileDown, PlusCircle, ArrowLeft, LogOut, User as UserIcon } from 'lucide-react';
+import { FileDown, PlusCircle, ArrowLeft, LogOut, User as UserIcon, Moon, Sun } from 'lucide-react';
 import { ProjectPulseLogo } from './project-pulse-logo';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
@@ -14,8 +14,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import { ProfileDialog } from './profile-dialog';
+import { useTheme } from 'next-themes';
 
 
 type HeaderProps = {
@@ -25,6 +30,7 @@ type HeaderProps = {
 
 export function Header({ onAddTask, onExport }: HeaderProps) {
   const { user } = useAuth();
+  const { setTheme } = useTheme();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
 
   return (
@@ -73,6 +79,27 @@ export function Header({ onAddTask, onExport }: HeaderProps) {
                             <UserIcon className="mr-2 h-4 w-4" />
                             <span>Edit Profile</span>
                         </DropdownMenuItem>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <Sun className="h-4 w-4 mr-2 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                            <Moon className="absolute h-4 w-4 mr-2 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                            <span>Toggle theme</span>
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuPortal>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => setTheme("light")}>
+                                Light
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setTheme("dark")}>
+                                Dark
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setTheme("system")}>
+                                System
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => auth.signOut()}>
                           <LogOut className="mr-2 h-4 w-4" />
                           <span>Log out</span>

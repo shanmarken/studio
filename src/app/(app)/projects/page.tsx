@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, PlusCircle, User as UserIcon, Trash2 } from 'lucide-react';
+import { LogOut, PlusCircle, User as UserIcon, Trash2, Sun, Moon } from 'lucide-react';
 import Link from 'next/link';
 import { ProjectPulseLogo } from '@/components/app/project-pulse-logo';
 import { useAuth } from '@/hooks/use-auth';
@@ -16,6 +16,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent
 } from "@/components/ui/dropdown-menu"
 import { useEffect, useState } from 'react';
 import { ProfileDialog } from '@/components/app/profile-dialog';
@@ -27,6 +31,7 @@ import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, 
 import { LoaderCircle } from 'lucide-react';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { ProjectsSidebar } from '@/components/app/projects-sidebar';
+import { useTheme } from 'next-themes';
 
 interface Project {
   id: string;
@@ -42,6 +47,7 @@ interface Project {
 export default function ProjectsPage() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { setTheme } = useTheme();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -242,6 +248,27 @@ export default function ProjectsPage() {
                             <UserIcon className="mr-2 h-4 w-4" />
                             <span>Edit Profile</span>
                         </DropdownMenuItem>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <Sun className="h-4 w-4 mr-2 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                            <Moon className="absolute h-4 w-4 mr-2 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                            <span>Toggle theme</span>
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuPortal>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => setTheme("light")}>
+                                Light
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setTheme("dark")}>
+                                Dark
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setTheme("system")}>
+                                System
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => auth.signOut()}>
                           <LogOut className="mr-2 h-4 w-4" />
                           <span>Log out</span>
