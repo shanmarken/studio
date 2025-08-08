@@ -288,85 +288,85 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
 
   return (
     <div className="flex flex-col flex-1 bg-muted/40 h-full">
-        <main className="flex-1 flex flex-col min-h-0 p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 overflow-x-auto custom-scrollbar">
+        <div className="p-4 sm:p-6 lg:p-8 h-full">
           {loading ? (
               <div className="flex h-full w-full items-center justify-center">
                   <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
               </div>
           ) : (
-              <div className="flex-1 overflow-x-auto custom-scrollbar">
-                <div className="flex h-full gap-4">
-                    {STATUS_COLUMNS.map(status => {
-                        const columnTasks = tasksByStatus[status] || [];
-                        const isCollapsed = collapsedColumns[status];
-                        return (
-                            <Collapsible
-                                key={status}
-                                open={!isCollapsed}
-                                onOpenChange={() => toggleColumnCollapse(status)}
-                                className={cn("flex flex-col rounded-lg border bg-background transition-all duration-300", isCollapsed ? 'w-16' : 'flex-shrink-0 w-80 md:w-96')}
-                            >
-                                <div className={cn("flex-shrink-0 p-4 border-b", isCollapsed ? 'h-full relative' : 'flex items-center gap-2')}>
-                                    {isCollapsed ? (
-                                        <div className="h-full flex flex-col items-center justify-between py-4">
-                                            <div className="flex flex-col items-center">
-                                                <CollapsibleTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6">
-                                                        <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
-                                                    </Button>
-                                                </CollapsibleTrigger>
-                                                <div className={cn("w-2 h-2 rounded-full mt-2", statusColorMap[status])}></div>
-                                             </div>
-                                             <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground [writing-mode:vertical-rl] rotate-180">
-                                                 {status}
-                                             </h2>
-                                             <div className="text-sm font-bold">{columnTasks.length}</div>
-                                        </div>
-                                    ) : (
-                                        <>
+            <div className="flex h-full gap-4">
+                {STATUS_COLUMNS.map(status => {
+                    const columnTasks = tasksByStatus[status] || [];
+                    const isCollapsed = collapsedColumns[status];
+                    return (
+                        <Collapsible
+                            key={status}
+                            open={!isCollapsed}
+                            onOpenChange={() => toggleColumnCollapse(status)}
+                            className={cn("flex flex-col rounded-lg border bg-background transition-all duration-300", isCollapsed ? 'w-16' : 'flex-shrink-0 w-80 md:w-96')}
+                        >
+                            <div className={cn("flex-shrink-0 p-4 border-b", isCollapsed ? 'h-full relative' : 'flex items-center gap-2')}>
+                                {isCollapsed ? (
+                                    <div className="h-full flex flex-col items-center justify-between py-4">
+                                        <div className="flex flex-col items-center">
                                             <CollapsibleTrigger asChild>
                                                 <Button variant="ghost" size="icon" className="h-6 w-6">
                                                     <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
                                                 </Button>
                                             </CollapsibleTrigger>
-                                            <div className={cn("w-3 h-3 rounded-full", statusColorMap[status])}></div>
-                                            <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
-                                                {status}
-                                            </h2>
-                                            <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                                                {columnTasks.length}
-                                            </span>
-                                        </>
+                                            <div className={cn("w-2 h-2 rounded-full mt-2", statusColorMap[status])}></div>
+                                         </div>
+                                         <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground [writing-mode:vertical-rl] rotate-180">
+                                             {status}
+                                         </h2>
+                                         <div className="text-sm font-bold">{columnTasks.length}</div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <CollapsibleTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
+                                            </Button>
+                                        </CollapsibleTrigger>
+                                        <div className={cn("w-3 h-3 rounded-full", statusColorMap[status])}></div>
+                                        <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
+                                            {status}
+                                        </h2>
+                                        <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                                            {columnTasks.length}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                            <CollapsibleContent asChild>
+                                <div className="space-y-4 overflow-y-auto flex-1 p-4">
+                                    {columnTasks.map(task => (
+                                    <TaskCard 
+                                        key={task.id} 
+                                        task={task} 
+                                        onEdit={handleEditTask}
+                                        onSuggest={handleSuggestUpdate}
+                                        onDelete={handleDeleteRequest}
+                                        onPromote={handlePromoteRequest}
+                                        onCompleteToggle={handleTaskCompleteToggle}
+                                        onSubTaskToggle={handleSubTaskToggle}
+                                    />
+                                    ))}
+                                    {columnTasks.length === 0 && (
+                                        <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                                            No tasks here.
+                                        </div>
                                     )}
                                 </div>
-                                <CollapsibleContent asChild>
-                                    <div className="space-y-4 overflow-y-auto flex-1 p-4">
-                                        {columnTasks.map(task => (
-                                        <TaskCard 
-                                            key={task.id} 
-                                            task={task} 
-                                            onEdit={handleEditTask}
-                                            onSuggest={handleSuggestUpdate}
-                                            onDelete={handleDeleteRequest}
-                                            onPromote={handlePromoteRequest}
-                                            onCompleteToggle={handleTaskCompleteToggle}
-                                            onSubTaskToggle={handleSubTaskToggle}
-                                        />
-                                        ))}
-                                        {columnTasks.length === 0 && (
-                                            <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
-                                                No tasks here.
-                                            </div>
-                                        )}
-                                    </div>
-                                </CollapsibleContent>
-                            </Collapsible>
-                        )
-                    })}
-                </div>
-              </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+                    )
+                })}
+            </div>
           )}
-        </main>
+        </div>
+      </main>
 
         <TaskDialog
             isOpen={isTaskDialogOpen}

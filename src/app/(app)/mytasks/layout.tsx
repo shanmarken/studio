@@ -14,7 +14,7 @@ export default function MyTasksLayout({
     <SidebarProvider>
       <ProjectsSidebar />
       <SidebarInset>
-        <div className="flex flex-col h-screen">
+        <div className="flex flex-col h-screen overflow-hidden">
           {children}
         </div>
       </SidebarInset>
