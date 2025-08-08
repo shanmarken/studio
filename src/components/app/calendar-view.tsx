@@ -14,6 +14,7 @@ import { Badge } from '../ui/badge';
 import { isSameDay, addDays, startOfWeek, format, eachDayOfInterval, addWeeks, subWeeks, isToday } from 'date-fns';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface TaskWithProject extends Task {
   projectName: string;
@@ -25,6 +26,7 @@ export function CalendarView() {
   const [tasks, setTasks] = useState<TaskWithProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const weekStartsOn = 1; // Monday
 
@@ -81,25 +83,56 @@ export function CalendarView() {
     return grouped;
   }, [tasks, daysInWeek]);
 
+  const dueTasks = useMemo(() => {
+    return tasks.filter(task => isSameDay(task.endDate, selectedDate));
+  }, [tasks, selectedDate]);
+
   const timeSlots = Array.from({ length: 11 }, (_, i) => `${i + 8}:00`); // 8am to 6pm
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+        setSelectedDate(date);
+        setCurrentDate(date);
+    }
+  }
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground p-4 sm:p-6 lg:p-8 pt-0">
-        <header className="flex items-center justify-end py-4 border-b border-border flex-shrink-0">
+        <header className="flex items-start justify-between py-4 border-b border-border flex-shrink-0 gap-8">
+            <Card className="flex-1 h-64">
+                <CardHeader>
+                    <CardTitle>Tasks Due: {format(selectedDate, 'MMMM d')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ScrollArea className="h-40">
+                        {dueTasks.length > 0 ? (
+                            <div className="space-y-2">
+                            {dueTasks.map(task => (
+                                <Link href={`/projects/${task.projectId}`} key={task.id}>
+                                    <div className="p-2 rounded-md bg-muted hover:bg-muted/80 transition-colors cursor-pointer">
+                                        <p className="font-semibold text-sm">{task.name}</p>
+                                        <p className="text-xs text-muted-foreground">{task.projectName}</p>
+                                    </div>
+                                </Link>
+                            ))}
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                No tasks due on this date.
+                            </div>
+                        )}
+                    </ScrollArea>
+                </CardContent>
+            </Card>
              <div className="w-72">
-                 <Calendar
-                    mode="single"
-                    onSelect={(date) => {
-                      if (date) {
-                        setCurrentDate(date);
-                        const newStartOfWeek = startOfWeek(date, { weekStartsOn });
-                        if(!isSameDay(startOfCurrentWeek, newStartOfWeek)) {
-                          // This will trigger re-render of the week view
-                        }
-                      }
-                    }}
-                    className="rounded-md border hidden lg:block"
-                />
+                <div className="flex flex-col gap-2">
+                     <Calendar
+                        mode="single"
+                        onSelect={handleDateSelect}
+                        selected={selectedDate}
+                        className="rounded-md border hidden lg:block"
+                    />
+                </div>
              </div>
         </header>
         <main className="flex-1 overflow-auto custom-scrollbar">
