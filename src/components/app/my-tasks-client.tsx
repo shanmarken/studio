@@ -52,52 +52,52 @@ export function MyTasksClient() {
   
     const projectsQuery = query(collection(db, 'projects'));
   
-    const unsubscribe = onSnapshot(projectsQuery, async (projectsSnapshot) => {
-      try {
-        const projects = projectsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          name: doc.data().name,
-        }));
-  
-        if (projects.length === 0) {
-          setTasks([]);
-          setLoading(false);
-          return;
-        }
-  
-        const allTasksPromises = projects.map(async (project) => {
-          const tasksQuery = query(
-            collection(db, `projects/${project.id}/tasks`),
-            where('assignedToId', '==', user.uid)
-          );
-          const tasksSnapshot = await getDocs(tasksQuery);
-          return tasksSnapshot.docs.map(taskDoc => {
+    const unsubscribe = onSnapshot(projectsQuery, (projectsSnapshot) => {
+      const projects = projectsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name,
+      }));
+
+      if (projects.length === 0) {
+        setTasks([]);
+        setLoading(false);
+        return;
+      }
+
+      const allTasksPromises = projects.map(project => {
+        const tasksQuery = query(
+          collection(db, `projects/${project.id}/tasks`),
+          where('assignedToId', '==', user.uid)
+        );
+        return getDocs(tasksQuery);
+      });
+
+      Promise.all(allTasksPromises).then(allTasksSnapshots => {
+        const allTasks: TaskWithProject[] = [];
+        allTasksSnapshots.forEach((tasksSnapshot, index) => {
+          tasksSnapshot.forEach(taskDoc => {
             const taskData = taskDoc.data();
-            return {
+            allTasks.push({
               ...(taskData as Task),
               id: taskDoc.id,
-              projectName: project.name,
-              projectId: project.id,
+              projectName: projects[index].name,
+              projectId: projects[index].id,
               startDate: new Date(taskData.startDate),
               endDate: new Date(taskData.endDate),
-            };
+            });
           });
         });
-  
-        const allTasksArrays = await Promise.all(allTasksPromises);
-        const allTasks = allTasksArrays.flat();
-        
         setTasks(allTasks);
-      } catch (error) {
+      }).catch(error => {
         console.error("Error fetching tasks:", error);
         toast({
             variant: 'destructive',
             title: 'Error',
             description: 'Failed to load your tasks.'
-        })
-      } finally {
+        });
+      }).finally(() => {
         setLoading(false);
-      }
+      });
     }, (error) => {
       console.error("Error fetching projects:", error);
       toast({
@@ -291,7 +291,7 @@ export function MyTasksClient() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-        <header className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b">
+        <header className="flex-shrink-0 border-b">
             <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
                 <h1 className="text-2xl font-bold">My Tasks</h1>
                 <div className="flex items-center gap-2">
@@ -311,9 +311,9 @@ export function MyTasksClient() {
                 </div>
             </div>
         </header>
-        <main className="flex-1 overflow-x-auto bg-muted/40">
+        <main className="flex-1 overflow-auto bg-muted/40">
             {loading ? (
-                <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
+                <div className="flex h-full items-center justify-center">
                     <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                 </div>
             ) : (
