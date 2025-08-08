@@ -100,9 +100,7 @@ export function CalendarView() {
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
         setSelectedDate(date);
-        if (getMonth(date) !== getMonth(currentDate)) {
-            setCurrentDate(date);
-        }
+        setCurrentDate(date);
     }
   }
 
@@ -157,7 +155,7 @@ export function CalendarView() {
              </div>
          </div>
         <div className="p-4 sm:px-6 sm:pb-6">
-            <header className="flex items-start justify-between flex-shrink-0 gap-8">
+            <header className="flex items-start justify-between flex-shrink-0 gap-8 pt-4">
                 <Card className="flex-1 bg-background">
                     <CardHeader>
                         <CardTitle>Tasks Due: {format(selectedDate, 'MMMM d')}</CardTitle>
@@ -187,6 +185,7 @@ export function CalendarView() {
                     <div className="flex flex-col gap-2">
                         <Calendar
                             mode="single"
+                            selected={selectedDate}
                             onSelect={handleDateSelect}
                             month={currentDate}
                             onMonthChange={setCurrentDate}
