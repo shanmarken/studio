@@ -23,7 +23,7 @@ import { CreateProjectDialog } from '@/components/app/create-project-dialog';
 import { DeleteProjectDialog } from '@/components/app/delete-project-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { LoaderCircle } from 'lucide-react';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { ProjectsSidebar } from '@/components/app/projects-sidebar';
@@ -70,17 +70,15 @@ export default function ProjectsPage() {
     const unsubscribe = onSnapshot(projectsQuery, async (querySnapshot) => {
         const projectsDataPromises = querySnapshot.docs.map(async (projectDoc) => {
             const projectData = projectDoc.data();
-            const ownerId = projectData.ownerId || (user.role !== 'admin' ? user.uid : 'unknown');
+            const ownerId = projectData.ownerId;
 
             // Ensure we have an ownerId to proceed
-            if (ownerId === 'unknown') {
+            if (!ownerId) {
                 console.warn(`Project ${projectDoc.id} is missing an ownerId.`);
                 return null;
             }
             
-            const tasksPath = user.role === 'admin' 
-              ? `users/${ownerId}/projects/${projectDoc.id}/tasks`
-              : `users/${user.uid}/projects/${projectDoc.id}/tasks`;
+            const tasksPath = `users/${ownerId}/projects/${projectDoc.id}/tasks`;
 
             const tasksRef = collection(db, tasksPath);
             const tasksSnapshot = await getDocs(tasksRef);
@@ -102,11 +100,14 @@ export default function ProjectsPage() {
         setLoading(false);
     }, (error) => {
         console.error("Error loading projects: ", error);
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Failed to load projects. Please try again later.'
-        });
+        // Do not show an error for an empty workspace, only for actual DB errors.
+        if (error.code !== 'permission-denied' || projects.length > 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to load projects. Please try again later.'
+            });
+        }
         setLoading(false);
     });
 
@@ -119,24 +120,13 @@ export default function ProjectsPage() {
 
     try {
         const projectsCollectionPath = user.role === 'admin' ? 'projects' : `users/${user.uid}/projects`;
-        const docRef = await addDoc(collection(db, projectsCollectionPath), {
+        const projectData = {
           ...project,
           createdAt: serverTimestamp(),
           ownerId: user.uid,
-        });
+        };
 
-        // For non-admins, the snapshot listener will pick up the change automatically.
-        // For admins, we manually add the new project to the state to avoid a full reload.
-        if (user.role === 'admin') {
-           const newProject: Project = {
-            ...project,
-            id: docRef.id,
-            lastUpdated: new Date(),
-            taskCount: 0,
-            completedTaskCount: 0,
-          };
-          setProjects(prev => [...prev, newProject]);
-        }
+        await addDoc(collection(db, projectsCollectionPath), projectData);
         
         toast({ title: 'Project Created', description: `"${project.name}" has been successfully created.`});
     } catch (error) {
@@ -162,20 +152,12 @@ export default function ProjectsPage() {
     try {
         let projectRef;
         if (user.role === 'admin') {
-            const projectDoc = await getDoc(doc(db, 'projects', projectToDelete.id));
-            if (projectDoc.exists()) {
-                projectRef = doc(db, 'projects', projectToDelete.id);
-            } else {
-                 projectRef = doc(db, `users/${user.uid}/projects`, projectToDelete.id);
-            }
+            projectRef = doc(db, 'projects', projectToDelete.id);
         } else {
             projectRef = doc(db, `users/${user.uid}/projects`, projectToDelete.id);
         }
 
         await deleteDoc(projectRef);
-
-        const updatedProjects = projects.filter(p => p.id !== projectToDelete.id);
-        setProjects(updatedProjects);
         
         toast({ title: 'Project Deleted', description: `"${projectToDelete?.name}" has been deleted.`});
     } catch (error) {
@@ -264,53 +246,69 @@ export default function ProjectsPage() {
             </div>
           </header>
           <main className="flex-1 p-4 sm:p-6 lg:p-8">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {projects.map((project) => {
-                const progress = getProjectProgress(project);
-                return (
-                  <Link href={`/projects/${project.id}`} key={project.id} className="block hover:no-underline group/card">
-                    <Card className="hover:shadow-lg hover:-translate-y-1 transition-all h-full flex flex-col relative">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-50 group-hover/card:opacity-100 transition-opacity"
-                        onClick={(e) => handleDeleteRequest(e, project)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      <CardHeader>
-                        <CardTitle>{project.name}</CardTitle>
-                        <CardDescription>{project.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex-grow space-y-2">
-                        <div className="flex items-center gap-2">
-                            <Progress value={progress} className="h-2" />
-                            <span className="text-xs font-mono">{progress}%</span>
-                          </div>
-                      </CardContent>
-                      <div className="p-4 pt-0 text-xs text-muted-foreground">
-                          Last updated {getFormattedDate(project.lastUpdated)}
-                      </div>
-                    </Card>
-                  </Link>
-                );
-              })}
-              <Card 
-                className="border-dashed border-2 hover:border-primary hover:text-primary transition-colors flex items-center justify-center min-h-[200px] cursor-pointer"
-                onClick={() => setIsCreateProjectDialogOpen(true)}
-              >
-                  <div className="text-center">
-                    <PlusCircle className="mx-auto h-10 w-10 text-muted-foreground" />
-                    <p className="mt-2 font-semibold">Create New Project</p>
-                  </div>
+            {projects.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {projects.map((project) => {
+                    const progress = getProjectProgress(project);
+                    return (
+                    <Link href={`/projects/${project.id}`} key={project.id} className="block hover:no-underline group/card">
+                        <Card className="hover:shadow-lg hover:-translate-y-1 transition-all h-full flex flex-col relative">
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-50 group-hover/card:opacity-100 transition-opacity"
+                            onClick={(e) => handleDeleteRequest(e, project)}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <CardHeader>
+                            <CardTitle>{project.name}</CardTitle>
+                            <CardDescription>{project.description}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex-grow space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Progress value={progress} className="h-2" />
+                                <span className="text-xs font-mono">{progress}%</span>
+                            </div>
+                        </CardContent>
+                        <div className="p-4 pt-0 text-xs text-muted-foreground">
+                            Last updated {getFormattedDate(project.lastUpdated)}
+                        </div>
+                        </Card>
+                    </Link>
+                    );
+                })}
+                 <Card 
+                    className="border-dashed border-2 hover:border-primary hover:text-primary transition-colors flex items-center justify-center min-h-[200px] cursor-pointer"
+                    onClick={() => setIsCreateProjectDialogOpen(true)}
+                >
+                    <div className="text-center">
+                        <PlusCircle className="mx-auto h-10 w-10 text-muted-foreground" />
+                        <p className="mt-2 font-semibold">Create New Project</p>
+                    </div>
                 </Card>
-            </div>
+                </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center h-full max-w-lg mx-auto text-center rounded-lg border-2 border-dashed p-12">
+                    <ProjectPulseLogo />
+                    <h2 className="mt-6 text-xl font-semibold">Welcome to Project Pulse</h2>
+                    <p className="mt-2 text-center text-muted-foreground">
+                        Your workspace is ready. Get started by creating your first project.
+                    </p>
+                    <Button className="mt-6" onClick={() => setIsCreateProjectDialogOpen(true)}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create Your First Project
+                    </Button>
+                </div>
+            )}
           </main>
         </div>
         <ProfileDialog isOpen={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen} />
         <CreateProjectDialog isOpen={isCreateProjectDialogOpen} onOpenChange={setIsCreateProjectDialogOpen} onSave={handleCreateProject} />
-        <DeleteProjectDialog isOpen={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} onConfirm={handleConfirmDelete} />
+        <DeleteProjectDialog isOpen={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} onConfirm={handleConfirmDelete} projectToDelete={projectToDelete} />
       </SidebarInset>
     </SidebarProvider>
   );
 }
+
+    

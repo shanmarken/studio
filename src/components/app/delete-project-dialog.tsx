@@ -17,17 +17,20 @@ type DeleteProjectDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onConfirm: () => void;
+  projectToDelete: { name: string } | null;
 };
 
-export function DeleteProjectDialog({ isOpen, onOpenChange, onConfirm }: DeleteProjectDialogProps) {
+export function DeleteProjectDialog({ isOpen, onOpenChange, onConfirm, projectToDelete }: DeleteProjectDialogProps) {
+  if (!projectToDelete) return null;
+
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete your
-            project and remove all associated data.
+            This action cannot be undone. This will permanently delete the project
+            "{projectToDelete.name}" and remove all associated data.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -45,3 +48,5 @@ export function DeleteProjectDialog({ isOpen, onOpenChange, onConfirm }: DeleteP
     </AlertDialog>
   );
 }
+
+    
