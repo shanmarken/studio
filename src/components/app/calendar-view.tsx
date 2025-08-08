@@ -220,7 +220,7 @@ export function CalendarView() {
   return (
     <>
     <div className="flex flex-col flex-1 h-full">
-         <div className="border-b border-border/50 flex-shrink-0 sticky top-0 bg-background z-20">
+         <div className="border-b border-border/50 flex-shrink-0 sticky top-0 bg-background/90 backdrop-blur-sm z-20">
              <div className='flex items-center justify-between gap-4 p-2 sm:px-6'>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={() => handleDateSelect(new Date())}>Today</Button>
@@ -310,7 +310,7 @@ export function CalendarView() {
                     <div className="grid grid-cols-[auto,1fr] h-full p-4">
                         {/* Time slots column */}
                         <div className="w-20 text-xs text-muted-foreground">
-                            <div className="h-16"></div> {/* Spacer for day headers */}
+                            <div className="sticky top-[65px] bg-background/90 backdrop-blur-sm z-10 h-16 border-b border-border/50"></div> {/* Spacer for day headers */}
                             {timeSlots.map(time => (
                                 <div key={time} className="h-24 flex items-start justify-end pr-2 pt-1 border-t border-border/50">
                                     <span>{time}</span>
