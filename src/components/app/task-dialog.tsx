@@ -196,9 +196,9 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
                         options={teamMembers}
                         value={field.value}
                         onChange={field.onChange}
-                        placeholder="Select or type a name..."
+                        placeholder="Select a team member"
                         searchPlaceholder="Search team members..."
-                        noResultsText="No team members found."
+                        noResultsText="No team member found."
                     />
                   <FormMessage />
                 </FormItem>
