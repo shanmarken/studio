@@ -49,7 +49,7 @@ export function Combobox({
           className="w-full justify-between"
         >
           {value
-            ? options.find((option) => option.value.toLowerCase() === value.toLowerCase())?.label
+            ? options.find((option) => option.value === value)?.label
             : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -65,10 +65,9 @@ export function Combobox({
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={option.label}
+                  value={option.value}
                   onSelect={(currentValue) => {
-                    const selectedOption = options.find(opt => opt.label.toLowerCase() === currentValue.toLowerCase());
-                    onChange(selectedOption ? selectedOption.value : "")
+                    onChange(currentValue === value ? "" : currentValue)
                     setOpen(false)
                   }}
                 >
