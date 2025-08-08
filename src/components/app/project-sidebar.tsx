@@ -119,12 +119,16 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
                     </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Analytics">
-                    <BarChart3 />
-                    <span>Analytics</span>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
+            {(user?.role === 'admin' || user?.role === 'management') && (
+              <SidebarMenuItem>
+                   <Link href="/insights" className="block w-full">
+                      <SidebarMenuButton tooltip="Insights" isActive={pathname.includes('/insights')}>
+                          <BarChart3 />
+                          <span>Insights</span>
+                      </SidebarMenuButton>
+                  </Link>
+              </SidebarMenuItem>
+            )}
              <SidebarMenuItem>
                 <Link href="/settings" className="block w-full">
                   <SidebarMenuButton tooltip="Settings" isActive={pathname.includes('/settings')}>
