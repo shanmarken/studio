@@ -13,7 +13,11 @@ export default function MyTasksLayout({
     <SidebarProvider>
         <ProjectsSidebar />
         <SidebarInset>
-            {children}
+            <div className="h-screen flex flex-col">
+              <div className="flex-1 overflow-auto">
+                {children}
+              </div>
+            </div>
         </SidebarInset>
     </SidebarProvider>
   );

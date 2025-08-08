@@ -52,63 +52,60 @@ export function MyTasksClient() {
   
     const projectsQuery = query(collection(db, 'projects'));
   
-    const unsubscribe = onSnapshot(projectsQuery, (projectsSnapshot) => {
-      const projects = projectsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name,
-      }));
-
-      if (projects.length === 0) {
-        setTasks([]);
-        setLoading(false);
-        return;
-      }
-
-      const allTasksPromises = projects.map(project => {
-        const tasksQuery = query(
-          collection(db, `projects/${project.id}/tasks`),
-          where('assignedToId', '==', user.uid)
-        );
-        return getDocs(tasksQuery);
-      });
-
-      Promise.all(allTasksPromises).then(allTasksSnapshots => {
-        const allTasks: TaskWithProject[] = [];
-        allTasksSnapshots.forEach((tasksSnapshot, index) => {
-          tasksSnapshot.forEach(taskDoc => {
-            const taskData = taskDoc.data();
-            allTasks.push({
-              ...(taskData as Task),
-              id: taskDoc.id,
-              projectName: projects[index].name,
-              projectId: projects[index].id,
-              startDate: new Date(taskData.startDate),
-              endDate: new Date(taskData.endDate),
+    const unsubscribeProjects = onSnapshot(projectsQuery, (projectsSnapshot) => {
+        const projects = projectsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name,
+        }));
+  
+        if (projects.length === 0) {
+            setTasks([]);
+            setLoading(false);
+            return;
+        }
+  
+        let allTasks: TaskWithProject[] = [];
+        const taskUnsubscribes = projects.map(project => {
+            const tasksQuery = query(
+                collection(db, `projects/${project.id}/tasks`),
+                where('assignedToId', '==', user.uid)
+            );
+            return onSnapshot(tasksQuery, (tasksSnapshot) => {
+                const projectTasks = tasksSnapshot.docs.map(taskDoc => {
+                    const taskData = taskDoc.data();
+                    return {
+                        ...(taskData as Task),
+                        id: taskDoc.id,
+                        projectName: project.name,
+                        projectId: project.id,
+                        startDate: new Date(taskData.startDate),
+                        endDate: new Date(taskData.endDate),
+                    };
+                });
+                
+                // Filter out tasks from this project that are already in allTasks and add the new ones
+                allTasks = allTasks.filter(t => t.projectId !== project.id).concat(projectTasks);
+                setTasks([...allTasks]);
+            }, (error) => {
+                console.error(`Error fetching tasks for project ${project.id}:`, error);
+                toast({ variant: 'destructive', title: 'Error', description: `Failed to load tasks for ${project.name}.` });
             });
-          });
         });
-        setTasks(allTasks);
-      }).catch(error => {
-        console.error("Error fetching tasks:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Failed to load your tasks.'
-        });
-      }).finally(() => {
-        setLoading(false);
-      });
+  
+        setLoading(false); // Set loading to false once we have set up listeners for all projects.
+        
+        return () => {
+            unsubscribeProjects();
+            taskUnsubscribes.forEach(unsub => unsub());
+        };
+  
     }, (error) => {
-      console.error("Error fetching projects:", error);
-      toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Failed to load projects.'
-      })
-      setLoading(false);
+        console.error("Error fetching projects:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load projects.' });
+        setLoading(false);
     });
   
-    return () => unsubscribe();
+    return () => unsubscribeProjects();
   }, [user, toast]);
 
 
@@ -290,9 +287,9 @@ export function MyTasksClient() {
 
 
   return (
-    <div className="flex flex-col h-full bg-background">
-        <header className="flex-shrink-0 border-b">
-            <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8 w-full">
+    <div className="bg-background">
+        <header className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b">
+            <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
                 <h1 className="text-2xl font-bold">My Tasks</h1>
                 <div className="flex items-center gap-2">
                     <Button variant="outline">
@@ -311,14 +308,14 @@ export function MyTasksClient() {
                 </div>
             </div>
         </header>
-        <main className="flex-1 bg-muted/40 min-h-0">
+        <main className="bg-muted/40">
             {loading ? (
-                <div className="flex h-full items-center justify-center">
+                <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
                     <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                 </div>
             ) : (
-                <div className="h-full p-4 sm:p-6 lg:p-8 overflow-x-auto">
-                    <div className="flex gap-8 h-full">
+                <div className="p-4 sm:p-6 lg:p-8">
+                    <div className="flex gap-8">
                         {STATUS_COLUMNS.map(status => {
                             const columnTasks = tasksByStatus[status] || [];
                             return (
@@ -332,26 +329,24 @@ export function MyTasksClient() {
                                             {columnTasks.length}
                                         </span>
                                     </div>
-                                    <div className="flex-1 overflow-y-auto pr-2">
-                                        <div className="space-y-4">
-                                            {columnTasks.map(task => (
-                                            <TaskCard 
-                                                key={task.id} 
-                                                task={task} 
-                                                onEdit={handleEditTask}
-                                                onSuggest={handleSuggestUpdate}
-                                                onDelete={handleDeleteRequest}
-                                                onPromote={handlePromoteRequest}
-                                                onCompleteToggle={handleTaskCompleteToggle}
-                                                onSubTaskToggle={handleSubTaskToggle}
-                                            />
-                                            ))}
-                                            {columnTasks.length === 0 && (
-                                                <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
-                                                    No tasks here.
-                                                </div>
-                                            )}
-                                        </div>
+                                    <div className="space-y-4">
+                                        {columnTasks.map(task => (
+                                        <TaskCard 
+                                            key={task.id} 
+                                            task={task} 
+                                            onEdit={handleEditTask}
+                                            onSuggest={handleSuggestUpdate}
+                                            onDelete={handleDeleteRequest}
+                                            onPromote={handlePromoteRequest}
+                                            onCompleteToggle={handleTaskCompleteToggle}
+                                            onSubTaskToggle={handleSubTaskToggle}
+                                        />
+                                        ))}
+                                        {columnTasks.length === 0 && (
+                                            <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                                                No tasks here.
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )
