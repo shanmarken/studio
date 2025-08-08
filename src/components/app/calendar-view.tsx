@@ -119,8 +119,8 @@ export function CalendarView() {
 
   return (
     <>
-    <div className="flex flex-col h-full bg-muted/40 text-foreground p-4 sm:p-6 lg:p-8 pt-0">
-         <div className="py-4 border-b border-border/50 flex-shrink-0">
+    <div className="flex flex-col h-full bg-muted/40 text-foreground p-4 sm:p-6">
+         <div className="border-b border-border/50 flex-shrink-0">
              <div className='flex items-center justify-between gap-4'>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={() => setCurrentDate(new Date())}>Today</Button>
