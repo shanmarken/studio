@@ -23,7 +23,7 @@ import { CreateProjectDialog } from '@/components/app/create-project-dialog';
 import { DeleteProjectDialog } from '@/components/app/delete-project-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, onSnapshot, doc, getDoc, collectionGroup } from 'firebase/firestore';
 import { LoaderCircle } from 'lucide-react';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { ProjectsSidebar } from '@/components/app/projects-sidebar';
@@ -35,6 +35,7 @@ interface Project {
   lastUpdated: any;
   taskCount: number;
   completedTaskCount: number;
+  ownerId: string;
 }
 
 
@@ -58,45 +59,93 @@ export default function ProjectsPage() {
 
     setLoading(true);
     
-    let projectsQuery;
-    if (user.role === 'admin') {
-      projectsQuery = query(collection(db, 'projects'));
-    } else {
-      projectsQuery = query(collection(db, `users/${user.uid}/projects`));
-    }
+    const fetchProjects = async (projectsQuery: any) => {
+        return new Promise<Project[]>((resolve, reject) => {
+            const unsubscribe = onSnapshot(projectsQuery, async (querySnapshot) => {
+                const projectsDataPromises = querySnapshot.docs.map(async (projectDoc) => {
+                    const projectData = projectDoc.data();
+                    const ownerId = projectData.ownerId;
+                    if (!ownerId) return null;
 
-    const unsubscribe = onSnapshot(projectsQuery, async (querySnapshot) => {
-        const projectsDataPromises = querySnapshot.docs.map(async (projectDoc) => {
-            const projectData = projectDoc.data();
-            const ownerId = projectData.ownerId || user.uid; // Fallback to current user's UID
+                    const tasksPath = `users/${ownerId}/projects/${projectDoc.id}/tasks`;
+                    const tasksRef = collection(db, tasksPath);
+                    
+                    // Use a snapshot listener for tasks to get realtime updates
+                    return new Promise<Project | null>((taskResolve) => {
+                        onSnapshot(tasksRef, (tasksSnapshot) => {
+                            const taskCount = tasksSnapshot.size;
+                            const completedTaskCount = tasksSnapshot.docs.filter(d => d.data().status === 'Completed').length;
+                            
+                            taskResolve({
+                                id: projectDoc.id,
+                                name: projectData.name,
+                                description: projectData.description,
+                                lastUpdated: projectData.createdAt,
+                                taskCount,
+                                completedTaskCount,
+                                ownerId: ownerId,
+                            });
+                        }, (error) => {
+                            console.error(`Error loading tasks for project ${projectDoc.id}:`, error);
+                            // Resolve with partial data if tasks fail to load
+                            taskResolve({
+                                id: projectDoc.id,
+                                name: projectData.name,
+                                description: projectData.description,
+                                lastUpdated: projectData.createdAt,
+                                taskCount: 0,
+                                completedTaskCount: 0,
+                                ownerId: ownerId,
+                            });
+                        });
+                    });
+                });
 
-            const tasksPath = `users/${ownerId}/projects/${projectDoc.id}/tasks`;
-
-            const tasksRef = collection(db, tasksPath);
-            const tasksSnapshot = await getDocs(tasksRef);
-            const taskCount = tasksSnapshot.size;
-            const completedTaskCount = tasksSnapshot.docs.filter(d => d.data().status === 'Completed').length;
-            
-            return {
-                id: projectDoc.id,
-                name: projectData.name,
-                description: projectData.description,
-                lastUpdated: projectData.createdAt,
-                taskCount,
-                completedTaskCount
-            };
+                const fetchedProjects = (await Promise.all(projectsDataPromises)).filter(p => p !== null) as Project[];
+                resolve(fetchedProjects);
+                // Note: We don't return the unsubscribe function from here because we need to manage multiple subscriptions.
+            }, (error) => {
+                console.error("Error loading projects: ", error);
+                reject(error);
+            });
+            // We need a way to group and call all unsubscribe functions.
+            // For now, this listener will be active for the component's life.
         });
+    };
 
-        const fetchedProjects = (await Promise.all(projectsDataPromises)).filter(p => p !== null) as Project[];
-        setProjects(fetchedProjects);
+    const loadAllProjects = async () => {
+        let allProjects: Project[] = [];
+        
+        // 1. Fetch user's own projects
+        const myProjectsQuery = query(collection(db, `users/${user.uid}/projects`));
+        const myProjects = await fetchProjects(myProjectsQuery);
+        allProjects = [...myProjects];
+
+        // 2. If admin, fetch all other projects
+        if (user.role === 'admin') {
+            const allProjectsQuery = query(collectionGroup(db, 'projects'));
+            const allOtherProjects = await fetchProjects(allProjectsQuery);
+            allProjects = [...allProjects, ...allOtherProjects];
+        }
+
+        // 3. De-duplicate projects
+        const uniqueProjects = Array.from(new Map(allProjects.map(p => [p.id, p])).values());
+        
+        setProjects(uniqueProjects);
         setLoading(false);
-    }, (error) => {
-        console.error("Error loading projects: ", error);
+    };
+
+    loadAllProjects().catch(error => {
         setLoading(false);
+        console.error("Failed to load project data", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load projects. Check console for details."
+        });
     });
 
-    return () => unsubscribe();
-}, [user, authLoading]);
+}, [user, authLoading, toast]);
 
 
   const handleCreateProject = async (project: { name: string; description: string }) => {
@@ -133,8 +182,15 @@ export default function ProjectsPage() {
   const handleConfirmDelete = async () => {
     if (!projectToDelete || !user) return;
     
+    // Admins can delete any project, others can only delete their own.
+    const ownerId = projectToDelete.ownerId || user.uid;
+    if (user.role !== 'admin' && ownerId !== user.uid) {
+        toast({ variant: 'destructive', title: 'Error', description: 'You do not have permission to delete this project.' });
+        return;
+    }
+
     try {
-        const projectRef = doc(db, `users/${user.uid}/projects`, projectToDelete.id);
+        const projectRef = doc(db, `users/${ownerId}/projects`, projectToDelete.id);
         await deleteDoc(projectRef);
         
         toast({ title: 'Project Deleted', description: `"${projectToDelete?.name}" has been deleted.`});

@@ -1,31 +1,40 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can read their own user document, and other users can read it too
+
+    // Helper function to get user role
+    function getUserRole(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    }
+
+    // Rules for the users collection
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
+      allow read: if request.auth != null; // Allow any authenticated user to read user profiles
+      allow write: if request.auth.uid == userId || getUserRole(request.auth.uid) == 'admin'; // Allow users to update their own profile, or admins to update any
     }
 
-    // A user can create/read/update/delete their own projects
+    // Rules for projects and tasks subcollections
     match /users/{userId}/projects/{projectId} {
-      allow read, write, delete: if request.auth.uid == userId;
-    }
+      // Admins can read/write/delete any project
+      // Users can read/write/delete their own projects
+      allow read, write, delete: if getUserRole(request.auth.uid) == 'admin' || request.auth.uid == userId;
 
-    // Allow admins to read any project
-    match /users/{ownerId}/projects/{projectId} {
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Rules for tasks within a project
+      match /tasks/{taskId} {
+        // Inherit permissions from the parent project
+        allow read, write, delete: if getUserRole(request.auth.uid) == 'admin' || request.auth.uid == userId;
+      }
     }
-
-    // A user can create/read/update/delete tasks within their own projects
-    match /users/{userId}/projects/{projectId}/tasks/{taskId} {
-        allow read, write, delete: if request.auth.uid == userId;
+    
+    // Rules for collection group queries
+    match /{path=**}/projects/{projectId} {
+    	allow read: if getUserRole(request.auth.uid) == 'admin';
     }
-
-    // Allow admins to read any task
-    match /users/{ownerId}/projects/{projectId}/tasks/{taskId} {
-        allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    
+    match /{path=**}/tasks/{taskId} {
+        allow read: if getUserRole(request.auth.uid) == 'admin' || request.auth.uid == resource.data.assignedToId;
     }
   }
 }
