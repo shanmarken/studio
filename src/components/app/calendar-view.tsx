@@ -119,7 +119,7 @@ export function CalendarView() {
 
   return (
     <>
-    <div className="flex flex-col h-full bg-muted/40 text-foreground p-4 sm:p-6">
+    <div className="flex flex-col h-full bg-muted/40 text-foreground p-4 sm:px-6 sm:pb-6">
          <div className="border-b border-border/50 flex-shrink-0">
              <div className='flex items-center justify-between gap-4 py-2'>
                 <div className="flex items-center gap-2">
