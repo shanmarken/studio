@@ -3,7 +3,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task, Status } from '@/lib/types';
@@ -48,22 +48,39 @@ export function MyTasksClient() {
     setLoading(true);
 
     const projectsQuery = query(collection(db, 'projects'));
+
     const unsubscribeProjects = onSnapshot(projectsQuery, (projectsSnapshot) => {
         const projects = projectsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
-        const unsubscribes: (()=>void)[] = [];
-
-        let allTasks: TaskWithProject[] = [];
-        let projectsProcessed = 0;
-
+        
         if (projects.length === 0) {
             setTasks([]);
             setLoading(false);
             return;
         }
 
-        projects.forEach(project => {
-            const tasksQuery = query(collection(db, `projects/${project.id}/tasks`), where('assignedToId', '==', user.uid));
-            const unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnapshot) => {
+        const taskListeners = projects.map(project => {
+            const tasksQuery = query(
+                collection(db, `projects/${project.id}/tasks`),
+                where('assignedToId', '==', user.uid)
+            );
+            
+            return onSnapshot(tasksQuery, () => {
+                // This is a bit of a trick. We refetch all tasks when any of the listeners fire.
+                // This is simpler than trying to manage all the sub-collections separately.
+                fetchAllTasks();
+            }, (error) => {
+                console.error(`Error fetching tasks for project ${project.id}:`, error);
+            });
+        });
+
+        const fetchAllTasks = async () => {
+            const allTasks: TaskWithProject[] = [];
+            for (const project of projects) {
+                const tasksQuery = query(
+                    collection(db, `projects/${project.id}/tasks`),
+                    where('assignedToId', '==', user.uid)
+                );
+                const tasksSnapshot = await getDocs(tasksQuery);
                 const projectTasks = tasksSnapshot.docs.map(taskDoc => {
                     const taskData = taskDoc.data();
                     return {
@@ -75,22 +92,16 @@ export function MyTasksClient() {
                         endDate: new Date(taskData.endDate),
                     };
                 });
-
-                // Filter out old tasks for this project and add new ones
-                allTasks = allTasks.filter(t => t.projectId !== project.id);
                 allTasks.push(...projectTasks);
-                setTasks([...allTasks]);
-
-            }, (error) => {
-                 console.error(`Error fetching tasks for project ${project.id}:`, error);
-            });
-            unsubscribes.push(unsubscribeTasks);
-        });
-
-        setLoading(false);
+            }
+            setTasks(allTasks);
+            setLoading(false);
+        };
+        
+        fetchAllTasks();
 
         return () => {
-            unsubscribes.forEach(unsub => unsub());
+            taskListeners.forEach(unsub => unsub());
         };
     }, (error) => {
         console.error("Error fetching projects:", error);
