@@ -170,7 +170,13 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
 
     const handleSaveTask = async (task: Task) => {
         const isEditing = !!task.id && tasks.some(t => t.id === task.id);
-        let taskName = task.name;
+        const taskName = task.name;
+        const currentProjectId = task.projectId;
+
+        if (!currentProjectId) {
+            toast({ variant: 'destructive', title: "Error", description: "Project ID is missing." });
+            return;
+        }
         
         if (task.subTasks && task.subTasks.length > 0) {
             const completedCount = task.subTasks.filter(st => st.completed).length;
@@ -178,20 +184,20 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
             task.percentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : task.percentComplete;
         }
 
-        const taskData = {
+        const taskData: any = {
             ...task,
             startDate: task.startDate.toISOString(),
             endDate: task.endDate.toISOString(),
+            dependencies: task.dependencies || '',
+            notes: task.notes || '',
         };
-        // @ts-ignore
+        
         delete taskData.id;
-        // @ts-ignore
         delete taskData.projectId;
 
         try {
             if (isEditing) {
-                if (!task.projectId) throw new Error("Project ID is missing");
-                const taskRef = doc(db, 'projects', task.projectId, 'tasks', task.id);
+                const taskRef = doc(db, 'projects', currentProjectId, 'tasks', task.id);
                 await updateDoc(taskRef, taskData);
                 toast({ title: "Task Updated", description: `"${taskName}" has been successfully updated.` });
             } else {
