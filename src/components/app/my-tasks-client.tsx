@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, collectionGroup, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task } from '@/lib/types';
@@ -26,34 +26,30 @@ export function MyTasksClient() {
 
       setLoading(true);
       try {
-        const tasksQuery = query(
-          collectionGroup(db, 'tasks'),
-          where('assignedToId', '==', user.uid)
-        );
-
-        const querySnapshot = await getDocs(tasksQuery);
+        const projectsQuery = query(collection(db, 'projects'));
+        const projectsSnapshot = await getDocs(projectsQuery);
         const myTasks: TaskWithProject[] = [];
 
-        for (const taskDoc of querySnapshot.docs) {
-          const taskData = taskDoc.data() as Task;
-          const projectRef = taskDoc.ref.parent.parent;
+        for (const projectDoc of projectsSnapshot.docs) {
+          const tasksQuery = query(
+            collection(db, `projects/${projectDoc.id}/tasks`),
+            where('assignedToId', '==', user.uid)
+          );
+          const tasksSnapshot = await getDocs(tasksQuery);
           
-          if (projectRef) {
-            const projectSnap = await getDoc(projectRef);
-            
-            if (projectSnap.exists()) {
-                const projectData = projectSnap.data();
-                 myTasks.push({
-                    ...taskData,
-                    id: taskDoc.id,
-                    projectName: projectData.name,
-                    projectId: projectSnap.id,
-                    startDate: new Date(taskData.startDate),
-                    endDate: new Date(taskData.endDate),
-                 });
-            }
-          }
+          tasksSnapshot.forEach(taskDoc => {
+            const taskData = taskDoc.data() as Task;
+            myTasks.push({
+              ...taskData,
+              id: taskDoc.id,
+              projectName: projectDoc.data().name,
+              projectId: projectDoc.id,
+              startDate: new Date(taskData.startDate),
+              endDate: new Date(taskData.endDate),
+            });
+          });
         }
+        
         setTasks(myTasks);
       } catch (error) {
         console.error("Error fetching tasks:", error);
@@ -90,6 +86,7 @@ export function MyTasksClient() {
                         <Card key={task.id}>
                             <CardHeader>
                                 <CardTitle>{task.name}</CardTitle>
+
                                 <CardDescription>
                                     In project: <Link href={`/projects/${task.projectId}`} className="text-primary hover:underline">{task.projectName}</Link>
                                 </CardDescription>
@@ -109,4 +106,3 @@ export function MyTasksClient() {
     </>
   );
 }
-
