@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -27,11 +28,13 @@ import { CreateProjectDialog } from '@/components/app/create-project-dialog';
 import { DeleteProjectDialog } from '@/components/app/delete-project-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, onSnapshot, doc, getDoc, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, onSnapshot, doc, getDoc, collectionGroup, writeBatch, limit } from 'firebase/firestore';
 import { LoaderCircle } from 'lucide-react';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { ProjectsSidebar } from '@/components/app/projects-sidebar';
 import { useTheme } from 'next-themes';
+import { Task, Priority, Status } from '@/lib/types';
+import { PHASES } from '@/lib/constants';
 
 interface Project {
   id: string;
@@ -42,6 +45,21 @@ interface Project {
   completedTaskCount: number;
   ownerId: string;
 }
+
+const dummyTasks: Omit<Task, 'id' | 'startDate' | 'endDate'>[] = [
+    { name: 'Define MVP Features', description: 'Outline the minimum viable product features for initial launch.', assignedTo: 'Alice', phase: PHASES[0], priority: 'High', status: 'Completed', percentComplete: 100, estimatedHours: 16 },
+    { name: 'Write Software Requirements Specification', description: 'Create the detailed SRS document covering all functional and non-functional requirements.', assignedTo: 'Alice', phase: PHASES[1], priority: 'High', status: 'Completed', percentComplete: 100, estimatedHours: 24 },
+    { name: 'Create Wireframes for Core App Flow', description: 'Develop low-fidelity wireframes for the main user journeys.', assignedTo: 'Bob', phase: PHASES[2], priority: 'High', status: 'In Progress', percentComplete: 75, estimatedHours: 30 },
+    { name: 'Design High-Fidelity Mockups', description: 'Produce high-fidelity mockups in Figma based on the approved wireframes.', assignedTo: 'Bob', phase: PHASES[2], priority: 'Medium', status: 'To Do', percentComplete: 0, estimatedHours: 40 },
+    { name: 'Design Database Schema', description: 'Define the database tables, relationships, and data types.', assignedTo: 'Charlie', phase: PHASES[3], priority: 'High', status: 'Completed', percentComplete: 100, estimatedHours: 20 },
+    { name: 'Setup Authentication API', description: 'Implement user registration, login, and session management endpoints.', assignedTo: 'Charlie', phase: PHASES[4], priority: 'High', status: 'In Progress', percentComplete: 90, estimatedHours: 32 },
+    { name: 'Develop Project CRUD API', description: 'Create the API endpoints for creating, reading, updating, and deleting projects.', assignedTo: 'Charlie', phase: PHASES[4], priority: 'Medium', status: 'To Do', percentComplete: 0, estimatedHours: 24 },
+    { name: 'Build Reusable Button Component', description: 'Create a flexible and themeable Button component in React.', assignedTo: 'Dave', phase: PHASES[5], priority: 'High', status: 'Blocked', percentComplete: 20, estimatedHours: 8, notes: "Waiting on final design system colors from Bob." },
+    { name: 'Implement Project Dashboard UI', description: 'Develop the main project dashboard page with task columns.', assignedTo: 'Dave', phase: PHASES[5], priority: 'Medium', status: 'To Do', percentComplete: 0, estimatedHours: 40 },
+    { name: 'Conduct Usability Testing with Beta Users', description: 'Organize and run usability testing sessions with a select group of beta testers.', assignedTo: 'Eve', phase: PHASES[6], priority: 'Medium', status: 'To Do', percentComplete: 0, estimatedHours: 24 },
+    { name: 'Write E2E Tests for Authentication', description: 'Use Cypress to write end-to-end tests for the login and signup flows.', assignedTo: 'Frank', phase: PHASES[7], priority: 'Low', status: 'To Do', percentComplete: 0, estimatedHours: 16 },
+    { name: 'Configure Staging Environment on Firebase', description: 'Set up the Firebase hosting and Firestore rules for the staging environment.', assignedTo: 'Grace', phase: PHASES[8], priority: 'High', status: 'To Do', percentComplete: 0, estimatedHours: 12 },
+];
 
 
 export default function ProjectsPage() {
@@ -54,6 +72,64 @@ export default function ProjectsPage() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // --- Start of Dummy Data Seeding ---
+  useEffect(() => {
+    const seedData = async () => {
+      if (!user) return;
+
+      const projectName = "PhotonXR";
+      const projectQuery = query(collection(db, "projects"), where("name", "==", projectName), limit(1));
+      const projectSnapshot = await getDocs(projectQuery);
+
+      if (projectSnapshot.empty) {
+        console.log(`Project "${projectName}" not found. Cannot seed data.`);
+        return;
+      }
+      
+      const projectDoc = projectSnapshot.docs[0];
+      const projectId = projectDoc.id;
+
+      const tasksCollectionRef = collection(db, 'projects', projectId, 'tasks');
+      const tasksSnapshot = await getDocs(tasksCollectionRef);
+
+      if (tasksSnapshot.size > 0) {
+        console.log(`Project "${projectName}" already has tasks. Skipping seed.`);
+        return;
+      }
+
+      console.log(`Seeding data for project "${projectName}"...`);
+      const batch = writeBatch(db);
+
+      dummyTasks.forEach((task, index) => {
+        const newTaskRef = doc(tasksCollectionRef); // Create a new doc with a random ID
+        const startDate = new Date();
+        const endDate = new Date();
+        startDate.setDate(startDate.getDate() + index * 2);
+        endDate.setDate(endDate.getDate() + index * 2 + 5);
+
+        batch.set(newTaskRef, {
+            ...task,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            createdAt: serverTimestamp()
+        });
+      });
+
+      try {
+        await batch.commit();
+        toast({ title: 'Data Seeded', description: `Dummy tasks added to "${projectName}".`});
+      } catch (error) {
+        console.error("Error seeding data: ", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to seed dummy data.'});
+      }
+    };
+
+    if(!authLoading) {
+        seedData();
+    }
+  }, [user, authLoading, toast]);
+  // --- End of Dummy Data Seeding ---
 
   useEffect(() => {
     if (authLoading) {
