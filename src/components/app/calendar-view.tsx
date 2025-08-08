@@ -99,9 +99,9 @@ export function CalendarView() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground p-4 sm:p-6 lg:p-8 pt-0">
+    <div className="flex flex-col h-full bg-muted/40 text-foreground p-4 sm:p-6 lg:p-8 pt-0">
         <header className="flex items-start justify-between py-4 border-b border-border flex-shrink-0 gap-8">
-            <Card className="flex-1 h-64 bg-muted/40">
+            <Card className="flex-1 h-64 bg-background">
                 <CardHeader>
                     <CardTitle>Tasks Due: {format(selectedDate, 'MMMM d')}</CardTitle>
                 </CardHeader>
@@ -111,7 +111,7 @@ export function CalendarView() {
                             <div className="space-y-2">
                             {dueTasks.map(task => (
                                 <Link href={`/projects/${task.projectId}`} key={task.id}>
-                                    <div className="p-2 rounded-md bg-background hover:bg-background/80 transition-colors cursor-pointer shadow-sm border">
+                                    <div className="p-2 rounded-md bg-muted/40 hover:bg-muted/80 transition-colors cursor-pointer shadow-sm border">
                                         <p className="font-semibold text-sm">{task.name}</p>
                                         <p className="text-xs text-muted-foreground">{task.projectName}</p>
                                     </div>
@@ -133,7 +133,7 @@ export function CalendarView() {
                         onSelect={handleDateSelect}
                         month={currentDate}
                         onMonthChange={setCurrentDate}
-                        className="rounded-md border hidden lg:block"
+                        className="rounded-md border bg-background hidden lg:block"
                     />
                 </div>
              </div>
@@ -155,10 +155,10 @@ export function CalendarView() {
                         ))}
                     </div>
                     {/* Days columns */}
-                    <div className="grid grid-cols-7 border-l border-border">
+                    <div className="grid grid-cols-7 border-l border-border/50">
                         {daysInWeek.map(day => (
-                            <div key={day.toString()} className="border-r border-border relative">
-                                <div className="sticky top-0 bg-background/90 backdrop-blur-sm z-10 text-center py-2 border-b border-border h-16 flex flex-col justify-center">
+                            <div key={day.toString()} className="border-r border-border/50 relative">
+                                <div className="sticky top-0 bg-muted/90 backdrop-blur-sm z-10 text-center py-2 border-b border-border/50 h-16 flex flex-col justify-center">
                                     <div className="text-sm uppercase text-muted-foreground">{format(day, 'EEE')}</div>
                                     <div className={cn("text-2xl font-bold", isToday(day) && "bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center mx-auto")}>
                                         {format(day, 'd')}
