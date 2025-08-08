@@ -1,9 +1,8 @@
-
 import { Priority, Status, Task } from './types';
 
 export const PHASES = [
   'Requirements',
-  'Software Requirements Specification',
+  'SRS',
   'UI/UX Design',
   'Database Design',
   'Backend Development',
