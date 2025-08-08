@@ -58,63 +58,67 @@ export default function ProjectsPage() {
       setLoading(false);
       return;
     }
-
+  
     setLoading(true);
     
-    // Listen to user's own projects
-    const q = query(collection(db, `users/${user.uid}/projects`));
+    // Query all projects from all users
+    const projectsQuery = query(collectionGroup(db, 'projects'));
     
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const userProjects = querySnapshot.docs.map(doc => ({
+    const unsubscribe = onSnapshot(projectsQuery, (projectsSnapshot) => {
+        const allProjects = projectsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         } as Project));
-
-        // Create listeners for task counts for each project
-        const unsubscribes: (() => void)[] = [];
-        
-        const projectsWithTasks: Project[] = [];
-        let projectsProcessed = 0;
-
-        if (userProjects.length === 0) {
+  
+        if (allProjects.length === 0) {
             setProjects([]);
             setLoading(false);
             return;
         }
-
-        userProjects.forEach(project => {
+  
+        const projectsWithTasks: Project[] = [];
+        const unsubscribes: (() => void)[] = [];
+        let projectsProcessed = 0;
+  
+        allProjects.forEach(project => {
             const tasksPath = `users/${project.ownerId}/projects/${project.id}/tasks`;
             const tasksRef = collection(db, tasksPath);
-
+  
             const taskUnsubscribe = onSnapshot(tasksRef, (tasksSnapshot) => {
                 const taskCount = tasksSnapshot.size;
                 const completedTaskCount = tasksSnapshot.docs.filter(d => d.data().status === 'Completed').length;
                 
+                // Find and update project or add if new
                 const existingProjectIndex = projectsWithTasks.findIndex(p => p.id === project.id);
                 if (existingProjectIndex > -1) {
                     projectsWithTasks[existingProjectIndex] = { ...projectsWithTasks[existingProjectIndex], taskCount, completedTaskCount };
                 } else {
-                     projectsWithTasks.push({ ...project, taskCount, completedTaskCount });
+                    projectsWithTasks.push({ ...project, taskCount, completedTaskCount });
                 }
+  
+                // Set projects state on each update to make it feel responsive
+                setProjects([...projectsWithTasks]);
 
-                // Check if this is the first time we process this project
+                // Initial loading state management
                 if (!project.hasOwnProperty('taskCount')) {
                     projectsProcessed++;
                 }
 
-                setProjects([...projectsWithTasks]);
-
-                // Once all projects have their task counts, stop loading
-                if (projectsProcessed === userProjects.length) {
+                if (projectsProcessed === allProjects.length) {
                     setLoading(false);
                 }
+            }, (error) => {
+                console.error(`Error loading tasks for project ${project.id}: `, error);
+                // We can choose to show projects even if tasks fail to load
             });
             unsubscribes.push(taskUnsubscribe);
         });
-
+        
+        // This is a cleanup for the task listeners
         return () => {
             unsubscribes.forEach(unsub => unsub());
         };
+  
     }, (error) => {
         console.error("Error loading projects: ", error);
         toast({
@@ -124,9 +128,9 @@ export default function ProjectsPage() {
         });
         setLoading(false);
     });
-
+  
     return () => unsubscribe();
-
+  
   }, [user, authLoading, toast]);
 
 
@@ -164,15 +168,14 @@ export default function ProjectsPage() {
   const handleConfirmDelete = async () => {
     if (!projectToDelete || !user) return;
     
-    // Admins can delete any project, others can only delete their own.
-    const ownerId = projectToDelete.ownerId || user.uid;
-    if (user.role !== 'admin' && ownerId !== user.uid) {
+    // Only the project owner or an admin can delete
+    if (user.role !== 'admin' && projectToDelete.ownerId !== user.uid) {
         toast({ variant: 'destructive', title: 'Error', description: 'You do not have permission to delete this project.' });
         return;
     }
 
     try {
-        const projectRef = doc(db, `users/${ownerId}/projects`, projectToDelete.id);
+        const projectRef = doc(db, `users/${projectToDelete.ownerId}/projects`, projectToDelete.id);
         await deleteDoc(projectRef);
         
         toast({ title: 'Project Deleted', description: `"${projectToDelete?.name}" has been deleted.`});
