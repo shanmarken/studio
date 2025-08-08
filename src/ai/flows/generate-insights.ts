@@ -48,7 +48,7 @@ const generateInsightsPrompt = ai.definePrompt({
   Analyze the following project data, which includes project details and a list of all tasks within each project.
   
   Project Data:
-  {{{json anies}}}
+  {{{json this}}}
   
   Your analysis should include three parts:
   
