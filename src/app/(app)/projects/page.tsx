@@ -22,9 +22,8 @@ import { ProfileDialog } from '@/components/app/profile-dialog';
 import { CreateProjectDialog } from '@/components/app/create-project-dialog';
 import { DeleteProjectDialog } from '@/components/app/delete-project-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { INITIAL_TASKS } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, writeBatch, doc, getDoc, setDoc, deleteDoc, runTransaction } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { LoaderCircle } from 'lucide-react';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { ProjectsSidebar } from '@/components/app/projects-sidebar';
@@ -48,123 +47,97 @@ export default function ProjectsPage() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  const DATA_VERSION = 2; // Increment this to force a re-seed for all users.
 
-  const seedInitialData = useCallback(async (userId: string) => {
-    try {
-        await runTransaction(db, async (transaction) => {
-            const userStateRef = doc(db, 'userStates', userId);
-            const userStateSnap = await transaction.get(userStateRef);
+  useEffect(() => {
+    if (!user) {
+        if (!authLoading) {
+            setLoading(false);
+        }
+        return;
+    };
 
-            // Check if seeding is needed
-            if (userStateSnap.exists() && userStateSnap.data()?.dataVersion >= DATA_VERSION) {
-                return; // Seeding not needed
-            }
-
-            // 1. Create "Project Pulse" project
-            const projectRef = doc(collection(db, 'users', userId, 'projects'));
-            transaction.set(projectRef, {
-                name: 'Project Pulse',
-                description: 'A next-gen project management tool to keep your development lifecycle on track.',
-                createdAt: serverTimestamp(),
-                ownerId: userId,
-            });
-
-            // 2. Add initial tasks to the project
-            INITIAL_TASKS.forEach(task => {
-                const taskRef = doc(collection(db, 'users', userId, 'projects', projectRef.id, 'tasks'));
-                const taskData = {
-                  ...task,
-                  startDate: task.startDate.toISOString(),
-                  endDate: task.endDate.toISOString(),
-                };
-                // @ts-ignore
-                delete taskData.id;
-                transaction.set(taskRef, taskData);
-            });
-
-            // 3. Update user state to mark as seeded
-            transaction.set(userStateRef, { hasBeenSeeded: true, dataVersion: DATA_VERSION });
-        });
-    } catch (error) {
-        console.error("Error in seeding transaction: ", error);
-        toast({
-            variant: 'destructive',
-            title: 'Setup Error',
-            description: 'Could not initialize your account with sample data.'
-        });
-    }
-}, [toast]);
-
-
-  const loadData = useCallback(async () => {
-    if (!user) return;
     setLoading(true);
+    
+    let projectsQuery;
+    if (user.role === 'admin') {
+      // Admin sees all projects
+      projectsQuery = query(collection(db, 'projects'));
+    } else {
+      // Other users see only their own projects
+      projectsQuery = query(collection(db, `users/${user.uid}/projects`));
+    }
 
-    try {
-        await seedInitialData(user.uid);
-        
-        const projectsQuery = query(collection(db, 'users', user.uid, 'projects'));
-        const querySnapshot = await getDocs(projectsQuery);
-        
-        const projectsDataPromises = querySnapshot.docs.map(async (doc) => {
-            const projectData = doc.data();
+    const unsubscribe = onSnapshot(projectsQuery, async (querySnapshot) => {
+        const projectsDataPromises = querySnapshot.docs.map(async (projectDoc) => {
+            const projectData = projectDoc.data();
+            const ownerId = projectData.ownerId || (user.role !== 'admin' ? user.uid : 'unknown');
+
+            // Ensure we have an ownerId to proceed
+            if (ownerId === 'unknown') {
+                console.warn(`Project ${projectDoc.id} is missing an ownerId.`);
+                return null;
+            }
             
-            const tasksRef = collection(db, 'users', user.uid, 'projects', doc.id, 'tasks');
+            const tasksPath = user.role === 'admin' 
+              ? `users/${ownerId}/projects/${projectDoc.id}/tasks`
+              : `users/${user.uid}/projects/${projectDoc.id}/tasks`;
+
+            const tasksRef = collection(db, tasksPath);
             const tasksSnapshot = await getDocs(tasksRef);
             const taskCount = tasksSnapshot.size;
             const completedTaskCount = tasksSnapshot.docs.filter(d => d.data().status === 'Completed').length;
             
             return {
-                id: doc.id,
+                id: projectDoc.id,
                 name: projectData.name,
                 description: projectData.description,
-                lastUpdated: projectData.createdAt, // Or a more dynamic field if you add one
+                lastUpdated: projectData.createdAt,
                 taskCount,
                 completedTaskCount
             };
         });
 
-        const fetchedProjects = await Promise.all(projectsDataPromises);
+        const fetchedProjects = (await Promise.all(projectsDataPromises)).filter(p => p !== null) as Project[];
         setProjects(fetchedProjects);
-    } catch (error) {
+        setLoading(false);
+    }, (error) => {
         console.error("Error loading projects: ", error);
         toast({
             variant: 'destructive',
             title: 'Error',
             description: 'Failed to load projects. Please try again later.'
         });
-    } finally {
         setLoading(false);
-    }
-  }, [user, toast, seedInitialData]);
+    });
 
-  useEffect(() => {
-    if (!authLoading && user) {
-      loadData();
-    }
-  }, [authLoading, user, loadData]);
+    return () => unsubscribe();
+}, [user, authLoading, toast]);
 
 
   const handleCreateProject = async (project: { name: string; description: string }) => {
     if (!user) return;
 
     try {
-        const docRef = await addDoc(collection(db, "users", user.uid, "projects"), {
+        const projectsCollectionPath = user.role === 'admin' ? 'projects' : `users/${user.uid}/projects`;
+        const docRef = await addDoc(collection(db, projectsCollectionPath), {
           ...project,
           createdAt: serverTimestamp(),
           ownerId: user.uid,
         });
 
-        const newProject: Project = {
-          ...project,
-          id: docRef.id,
-          lastUpdated: new Date(),
-          taskCount: 0,
-          completedTaskCount: 0,
-        };
-        setProjects(prev => [...prev, newProject]);
+        // For non-admins, the snapshot listener will pick up the change automatically.
+        // For admins, we manually add the new project to the state to avoid a full reload.
+        if (user.role === 'admin') {
+           const newProject: Project = {
+            ...project,
+            id: docRef.id,
+            lastUpdated: new Date(),
+            taskCount: 0,
+            completedTaskCount: 0,
+          };
+          setProjects(prev => [...prev, newProject]);
+        }
+        
         toast({ title: 'Project Created', description: `"${project.name}" has been successfully created.`});
     } catch (error) {
         console.error("Error creating project: ", error);
@@ -187,7 +160,19 @@ export default function ProjectsPage() {
     if (!projectToDelete || !user) return;
     
     try {
-        await deleteDoc(doc(db, 'users', user.uid, 'projects', projectToDelete.id));
+        let projectRef;
+        if (user.role === 'admin') {
+            const projectDoc = await getDoc(doc(db, 'projects', projectToDelete.id));
+            if (projectDoc.exists()) {
+                projectRef = doc(db, 'projects', projectToDelete.id);
+            } else {
+                 projectRef = doc(db, `users/${user.uid}/projects`, projectToDelete.id);
+            }
+        } else {
+            projectRef = doc(db, `users/${user.uid}/projects`, projectToDelete.id);
+        }
+
+        await deleteDoc(projectRef);
 
         const updatedProjects = projects.filter(p => p.id !== projectToDelete.id);
         setProjects(updatedProjects);
