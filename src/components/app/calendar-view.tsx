@@ -121,7 +121,7 @@ export function CalendarView() {
          <div className="border-b border-border/50 flex-shrink-0 sticky top-0 bg-muted/40 z-20">
              <div className='flex items-center justify-between gap-4 py-2 px-4 sm:px-6'>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => setCurrentDate(new Date())}>Today</Button>
+                    <Button variant="outline" onClick={() => handleDateSelect(new Date())}>Today</Button>
                     <Button variant="outline" size="icon" onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
