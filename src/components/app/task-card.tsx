@@ -55,7 +55,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
         <Card className="mb-4 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow duration-300">
         <CardHeader className="p-4">
            {isOpen ? (
-                 <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
                     <Checkbox
                     id={`task-${task.id}`}
                     checked={task.status === 'Completed'}
@@ -81,7 +81,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                 <CollapsibleTrigger asChild>
                     <div className="flex justify-between items-center gap-2 cursor-pointer">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                             <div className="relative flex-shrink-0">
+                            <div className="relative flex-shrink-0">
                                 <UserAvatar name={task.assignedTo} />
                                 <span 
                                     className={cn(
@@ -119,14 +119,19 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                         <UserAvatar name={task.assignedTo} />
                         <span>{task.assignedTo}</span>
                     </div>
-                     <Badge variant="outline" className={cn(
-                        task.status === 'To Do' && 'bg-gray-500/20 text-gray-700 border-gray-500/30 dark:text-gray-400',
-                        task.status === 'In Progress' && 'bg-blue-500/20 text-blue-700 border-blue-500/30 dark:text-blue-400',
-                        task.status === 'Completed' && 'bg-green-500/20 text-green-700 border-green-500/30 dark:text-green-400',
-                        task.status === 'Blocked' && 'bg-destructive/20 text-destructive border-destructive/30 dark:text-destructive'
-                    )}>
-                        {task.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={cn(
+                            task.status === 'To Do' && 'bg-gray-500/20 text-gray-700 border-gray-500/30 dark:text-gray-400',
+                            task.status === 'In Progress' && 'bg-blue-500/20 text-blue-700 border-blue-500/30 dark:text-blue-400',
+                            task.status === 'Completed' && 'bg-green-500/20 text-green-700 border-green-500/30 dark:text-green-400',
+                            task.status === 'Blocked' && 'bg-destructive/20 text-destructive border-destructive/30 dark:text-destructive'
+                        )}>
+                            {task.status}
+                        </Badge>
+                         <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
+                            {task.priority}
+                        </Badge>
+                    </div>
                 </div>
 
                 {task.projectName && (
