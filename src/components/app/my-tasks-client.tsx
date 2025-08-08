@@ -306,15 +306,22 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
                                 onOpenChange={() => toggleColumnCollapse(status)}
                                 className={cn("flex flex-col rounded-lg border bg-background transition-all duration-300", isCollapsed ? 'w-16' : 'flex-shrink-0 w-80 md:w-96')}
                             >
-                                <div className="flex items-center gap-2 flex-shrink-0 p-4 border-b">
+                                <div className={cn("flex-shrink-0 p-4 border-b", isCollapsed ? 'flex-col items-center justify-center h-full relative' : 'flex items-center gap-2')}>
                                     <CollapsibleTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                                            <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed && "rotate-90")} />
+                                        <Button variant="ghost" size="icon" className={cn("h-6 w-6", isCollapsed && 'absolute top-4 left-1/2 -translate-x-1/2')}>
+                                            <ChevronsRight className={cn("h-4 w-4 transition-transform", isCollapsed ? 'rotate-90' : 'rotate-0')} />
                                         </Button>
                                     </CollapsibleTrigger>
-                                    <div className={cn("w-3 h-3 rounded-full", statusColorMap[status], isCollapsed && 'mr-auto')}></div>
-                                    {!isCollapsed && (
+                                    
+                                    {isCollapsed ? (
+                                        <div className="flex items-center justify-center h-full">
+                                            <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground [writing-mode:vertical-rl] rotate-180">
+                                                {status}
+                                            </h2>
+                                        </div>
+                                    ) : (
                                         <>
+                                            <div className={cn("w-3 h-3 rounded-full", statusColorMap[status])}></div>
                                             <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
                                                 {status}
                                             </h2>
@@ -383,3 +390,5 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
     </div>
   );
 }
+
+    
