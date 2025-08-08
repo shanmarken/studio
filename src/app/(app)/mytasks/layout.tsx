@@ -13,9 +13,7 @@ export default function MyTasksLayout({
     <SidebarProvider>
         <ProjectsSidebar />
         <SidebarInset>
-            <div className="flex flex-col min-h-screen bg-background">
-                {children}
-            </div>
+            {children}
         </SidebarInset>
     </SidebarProvider>
   );
