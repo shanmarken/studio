@@ -43,6 +43,7 @@ export function CalendarView() {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('week');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const weekStartsOn = 1; // Monday
 
@@ -103,18 +104,26 @@ export function CalendarView() {
     fetchTasks();
   }, [user]);
 
+  const filteredTasks = useMemo(() => {
+    if (!searchTerm) return tasks;
+    return tasks.filter(task => 
+      task.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.projectName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [tasks, searchTerm]);
+
   const tasksByDay = useMemo(() => {
     const grouped: { [key: string]: TaskWithProject[] } = {};
     days.forEach(day => {
         const dayKey = format(day, 'yyyy-MM-dd');
-        grouped[dayKey] = tasks.filter(task => isSameDay(task.endDate, day));
+        grouped[dayKey] = filteredTasks.filter(task => isSameDay(task.endDate, day));
     });
     return grouped;
-  }, [tasks, days]);
+  }, [filteredTasks, days]);
 
   const dueTasks = useMemo(() => {
-    return tasks.filter(task => isSameDay(task.endDate, selectedDate) && task.status !== 'Completed');
-  }, [tasks, selectedDate]);
+    return filteredTasks.filter(task => isSameDay(task.endDate, selectedDate) && task.status !== 'Completed');
+  }, [filteredTasks, selectedDate]);
 
   const timeSlots = Array.from({ length: 11 }, (_, i) => `${i + 8}:00`); // 8am to 6pm
 
@@ -226,7 +235,12 @@ export function CalendarView() {
                 <div className="flex items-center gap-2">
                     <div className="relative">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search tasks..." className="pl-8" />
+                        <Input 
+                            placeholder="Search tasks..." 
+                            className="pl-8" 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -370,3 +384,5 @@ export function CalendarView() {
     </>
   );
 }
+
+    
