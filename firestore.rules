@@ -3,41 +3,44 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isAuth() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Rules for the 'users' collection
+    
+    // Match any document in the 'users' collection
     match /users/{userId} {
-      // Any authenticated user can read user profiles (for assignees, etc.)
-      allow read: if isAuth(); 
-      // A user can update their own profile, or an admin can update any profile
-      allow write: if request.auth.uid == userId || isAdmin();
+      // Users can only read their own document
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Users can only create their own document upon signup
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // Users can update their own document
+      allow update: if request.auth != null && request.auth.uid == userId;
 
-      // Rules for the 'projects' subcollection
+      // Match documents in the 'projects' subcollection of a user
       match /projects/{projectId} {
-        // Any authenticated user can view any project
-        allow read: if isAuth();
-        // Only the project owner or an admin can create, update, or delete a project
-        allow write: if request.auth.uid == userId || isAdmin();
+        // Any authenticated user can read any project
+        allow read: if request.auth != null;
+        
+        // Only the owner can create, update, or delete their own projects
+        allow write: if request.auth != null && request.auth.uid == userId;
+        
+        // Match documents in the 'tasks' subcollection of a project
+        match /tasks/{taskId} {
+            // Project owner can read tasks
+            allow read: if request.auth != null && request.auth.uid == userId;
+            // Project owner can write tasks
+            allow write: if request.auth != null && request.auth.uid == userId;
+        }
       }
     }
 
-    // Allow admins to list all users
-    match /users {
-      allow list: if isAdmin();
-    }
-    
-    // Rules for 'tasks' collection group
-    // This allows the "My Tasks" page to work correctly and securely for all users.
+    // This rule allows the collectionGroup query for 'tasks' on the 'My Tasks' page.
+    // A user can read a task if they are assigned to it.
     match /{path=**}/tasks/{taskId} {
-       allow read: if isAuth() && (resource.data.assignedToId == request.auth.uid || isAdmin());
-       // Write rules are handled by the /users/{userId}/projects/{projectId} path
+      allow read: if request.auth != null && resource.data.assignedToId == request.auth.uid;
+    }
+
+    // This rule allows the collectionGroup query for 'projects' on the main projects page.
+    // Any authenticated user can list and get all projects.
+    match /{path=**}/projects/{projectId} {
+        allow get, list: if request.auth != null;
     }
   }
 }
