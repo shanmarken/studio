@@ -85,21 +85,19 @@ export function CalendarView() {
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground p-4 sm:p-6 lg:p-8 pt-0">
-        <header className="flex items-center justify-between py-4 border-b border-border flex-shrink-0">
-            <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>
-                        <ChevronLeft className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addWeeks(currentDate, 1))}>
-                        <ChevronRight className="h-5 w-5" />
-                    </Button>
-                </div>
-            </div>
+        <header className="flex items-center justify-end py-4 border-b border-border flex-shrink-0">
              <div className="w-72">
                  <Calendar
                     mode="single"
-                    onSelect={(date) => date && setCurrentDate(date)}
+                    onSelect={(date) => {
+                      if (date) {
+                        setCurrentDate(date);
+                        const newStartOfWeek = startOfWeek(date, { weekStartsOn });
+                        if(!isSameDay(startOfCurrentWeek, newStartOfWeek)) {
+                          // This will trigger re-render of the week view
+                        }
+                      }
+                    }}
                     className="rounded-md border hidden lg:block"
                 />
              </div>
