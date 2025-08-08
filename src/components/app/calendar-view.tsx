@@ -158,12 +158,12 @@ export function CalendarView() {
          </div>
         <div className="p-4 sm:px-6 sm:pb-6">
             <header className="flex items-start justify-between flex-shrink-0 gap-8">
-                <Card className="flex-1 h-64 bg-background">
+                <Card className="flex-1 bg-background">
                     <CardHeader>
                         <CardTitle>Tasks Due: {format(selectedDate, 'MMMM d')}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ScrollArea className="h-40">
+                        <ScrollArea className="h-64">
                             {dueTasks.length > 0 ? (
                                 <div className="space-y-2">
                                 {dueTasks.map(task => (
