@@ -121,7 +121,7 @@ export function CalendarView() {
     <>
     <div className="flex flex-col h-full bg-muted/40 text-foreground p-4 sm:p-6">
          <div className="border-b border-border/50 flex-shrink-0">
-             <div className='flex items-center justify-between gap-4'>
+             <div className='flex items-center justify-between gap-4 py-2'>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={() => setCurrentDate(new Date())}>Today</Button>
                     <Button variant="outline" onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>
@@ -156,7 +156,7 @@ export function CalendarView() {
                 </div>
              </div>
          </div>
-        <header className="flex items-start justify-between py-4 border-b border-border/50 flex-shrink-0 gap-8">
+        <header className="flex items-start justify-between pt-4 flex-shrink-0 gap-8">
             <Card className="flex-1 h-64 bg-background">
                 <CardHeader>
                     <CardTitle>Tasks Due: {format(selectedDate, 'MMMM d')}</CardTitle>
