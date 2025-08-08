@@ -60,7 +60,7 @@ export default function ProjectsPage() {
     
     let projectsQuery;
     if (user.role === 'admin') {
-      // Admin sees all projects
+      // Admin sees all projects from all users
       projectsQuery = query(collection(db, 'projects'));
     } else {
       // Other users see only their own projects
@@ -100,26 +100,18 @@ export default function ProjectsPage() {
         setLoading(false);
     }, (error) => {
         console.error("Error loading projects: ", error);
-        // Do not show an error for an empty workspace, only for actual DB errors.
-        if (error.code !== 'permission-denied' || projects.length > 0) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to load projects. Please try again later.'
-            });
-        }
         setLoading(false);
     });
 
     return () => unsubscribe();
-}, [user, authLoading, toast]);
+}, [user, authLoading]);
 
 
   const handleCreateProject = async (project: { name: string; description: string }) => {
     if (!user) return;
 
     try {
-        const projectsCollectionPath = user.role === 'admin' ? 'projects' : `users/${user.uid}/projects`;
+        const projectsCollectionPath = `users/${user.uid}/projects`;
         const projectData = {
           ...project,
           createdAt: serverTimestamp(),
@@ -150,13 +142,7 @@ export default function ProjectsPage() {
     if (!projectToDelete || !user) return;
     
     try {
-        let projectRef;
-        if (user.role === 'admin') {
-            projectRef = doc(db, 'projects', projectToDelete.id);
-        } else {
-            projectRef = doc(db, `users/${user.uid}/projects`, projectToDelete.id);
-        }
-
+        const projectRef = doc(db, `users/${user.uid}/projects`, projectToDelete.id);
         await deleteDoc(projectRef);
         
         toast({ title: 'Project Deleted', description: `"${projectToDelete?.name}" has been deleted.`});
@@ -310,5 +296,3 @@ export default function ProjectsPage() {
     </SidebarProvider>
   );
 }
-
-    
