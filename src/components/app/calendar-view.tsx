@@ -212,7 +212,7 @@ export function CalendarView() {
     <>
     <div className="flex flex-col flex-1 h-full">
          <div className="border-b border-border/50 flex-shrink-0 sticky top-0 bg-background z-20">
-             <div className='flex items-center justify-between gap-4 py-2 px-4 sm:px-6'>
+             <div className='flex items-center justify-between gap-4 p-2 sm:px-6'>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={() => handleDateSelect(new Date())}>Today</Button>
                     <Button variant="outline" size="icon" onClick={handlePrev}>
@@ -340,11 +340,13 @@ export function CalendarView() {
                                                         "border-l-4 transition-colors p-2 text-xs cursor-pointer",
                                                         statusColorMap[task.status]
                                                         )}>
-                                                        <div className='flex justify-between items-center'>
-                                                            <p className="font-semibold truncate">{task.name}</p>
+                                                        <div className="flex flex-col gap-1">
+                                                          <p className="font-semibold truncate">{task.name}</p>
+                                                          <p className="text-muted-foreground truncate">{task.projectName}</p>
+                                                          <div className="flex justify-center">
                                                             <Badge variant="outline" className='text-xs'>{task.status}</Badge>
+                                                          </div>
                                                         </div>
-                                                        <p className="text-muted-foreground truncate">{task.projectName}</p>
                                                     </Card>
                                                 </Link>
                                             ))}
