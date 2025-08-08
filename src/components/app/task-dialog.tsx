@@ -60,6 +60,7 @@ const taskSchema = z.object({
   notes: z.string().optional(),
   phase: z.string().min(1, 'Phase is required'),
   subTasks: z.array(subTaskSchema).optional(),
+  projectId: z.string().min(1, 'Project is required'),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -75,6 +76,7 @@ type TaskDialogProps = {
 export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: TaskDialogProps) {
   const { user } = useAuth();
   const [teamMembers, setTeamMembers] = useState<{label: string, value: string}[]>([]);
+  const [projects, setProjects] = useState<{label: string, value: string}[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -86,8 +88,20 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
         }));
         setTeamMembers(userList);
     };
-    fetchUsers();
-  }, []);
+    const fetchProjects = async () => {
+        const projectsRef = collection(db, 'projects');
+        const projectsSnap = await getDocs(projectsRef);
+        const projectList = projectsSnap.docs.map(doc => ({
+            value: doc.id,
+            label: doc.data().name,
+        }));
+        setProjects(projectList);
+    };
+    if (isOpen) {
+        fetchUsers();
+        fetchProjects();
+    }
+  }, [isOpen]);
   
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -106,6 +120,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
       notes: '',
       phase: '',
       subTasks: [],
+      projectId: '',
     },
   });
 
@@ -118,6 +133,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
     if (taskToEdit) {
       form.reset({
         ...taskToEdit,
+        projectId: taskToEdit.projectId || '',
         startDate: new Date(taskToEdit.startDate),
         endDate: new Date(taskToEdit.endDate),
         percentComplete: taskToEdit.percentComplete || 0,
@@ -139,6 +155,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
         notes: '',
         phase: PHASES[0],
         subTasks: [],
+        projectId: '',
       });
     }
   }, [taskToEdit, form, isOpen, user]);
@@ -174,6 +191,24 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+            <FormField
+                name="projectId"
+                control={form.control}
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Project</FormLabel>
+                    <Combobox
+                      options={projects}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select project"
+                      searchPlaceholder="Search projects..."
+                      noResultsText="No projects found."
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             <FormField name="name" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Task Name</FormLabel>

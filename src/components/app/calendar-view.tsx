@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, getDocs, collectionGroup, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, getDocs, collectionGroup, getDoc, onSnapshot, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task } from '@/lib/types';
@@ -18,6 +18,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { TaskDialog } from './task-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface TaskWithProject extends Task {
   projectName: string;
@@ -26,6 +27,7 @@ interface TaskWithProject extends Task {
 
 export function CalendarView() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [tasks, setTasks] = useState<TaskWithProject[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +35,7 @@ export function CalendarView() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
+  const [viewMode, setViewMode] = useState<'day' | 'week'>('week');
 
   const weekStartsOn = 1; // Monday
 
@@ -121,9 +123,51 @@ export function CalendarView() {
     setIsTaskDialogOpen(true);
   };
 
-  const handleSaveTask = (task: Task) => {
-    // This is a placeholder. You'll need to implement the actual save logic.
-    console.log("Saving task", task);
+  const handleSaveTask = async (task: Task) => {
+    const isEditing = !!task.id && tasks.some(t => t.id === task.id);
+    let taskName = task.name;
+    const projectId = task.projectId;
+    
+    if (!projectId) {
+        toast({ variant: 'destructive', title: "Error", description: "Project ID is missing." });
+        return;
+    }
+
+    if (task.subTasks && task.subTasks.length > 0) {
+        const completedCount = task.subTasks.filter(st => st.completed).length;
+        const totalCount = task.subTasks.length;
+        task.percentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : task.percentComplete;
+    }
+
+    const taskData = {
+        ...task,
+        startDate: task.startDate.toISOString(),
+        endDate: task.endDate.toISOString(),
+    };
+    // @ts-ignore
+    delete taskData.projectId;
+
+    try {
+        if (isEditing) {
+            const taskRef = doc(db, 'projects', projectId, 'tasks', task.id);
+            // @ts-ignore
+            delete taskData.id;
+            await updateDoc(taskRef, taskData);
+            toast({ title: "Task Updated", description: `"${taskName}" has been successfully updated.` });
+        } else {
+            // @ts-ignore
+            delete taskData.id;
+            const docRef = await addDoc(collection(db, 'projects', projectId, 'tasks'), {
+                ...taskData,
+                createdAt: serverTimestamp()
+            });
+            taskName = task.name;
+            toast({ title: "Task Added", description: `"${taskName}" has been successfully added.` });
+        }
+    } catch (error) {
+        console.error("Error saving task: ", error);
+        toast({ variant: 'destructive', title: "Error", description: "Failed to save task." });
+    }
   };
 
   const handlePrev = () => {
@@ -159,8 +203,8 @@ export function CalendarView() {
 
   return (
     <>
-    <div className="flex flex-col bg-muted/40 text-foreground">
-         <div className="border-b border-border/50 flex-shrink-0 sticky top-0 bg-muted/40 z-20">
+    <div className="flex flex-col flex-1 h-full">
+         <div className="border-b border-border/50 flex-shrink-0 sticky top-0 bg-background z-20">
              <div className='flex items-center justify-between gap-4 py-2 px-4 sm:px-6'>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={() => handleDateSelect(new Date())}>Today</Button>
@@ -196,7 +240,7 @@ export function CalendarView() {
                 </div>
              </div>
          </div>
-        <div className="p-4 sm:px-6 sm:pb-6">
+        <div className="sm:px-6 sm:pb-6">
             <header className="flex items-start justify-between flex-shrink-0 gap-8 pt-4">
                 <Card className="flex-1 bg-background">
                     <CardHeader>

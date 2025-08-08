@@ -25,4 +25,5 @@ export type Task = {
   notes?: string;
   phase: string;
   subTasks?: SubTask[];
+  projectId?: string;
 };
