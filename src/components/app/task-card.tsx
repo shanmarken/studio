@@ -176,7 +176,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                 </div>
                 
                 {!task.projectName && (
-                    <div className="flex items-center justify-end text-xs text-muted-foreground">
+                    <div className="flex items-center justify-start text-xs text-muted-foreground">
                         <div className="flex items-center gap-1.5">
                             <Calendar className="h-3.5 w-3.5" />
                             <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
