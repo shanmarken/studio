@@ -275,15 +275,15 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
 
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-muted/40">
-        <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 overflow-hidden">
+    <div className="flex flex-col flex-1 h-full bg-muted/40">
+        <main className="flex-1 flex flex-col min-h-0">
           {loading ? (
               <div className="flex h-full w-full items-center justify-center">
                   <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
               </div>
           ) : (
               <div className="flex-1 overflow-x-auto">
-                <div className="flex gap-8 h-full">
+                <div className="flex gap-8 h-full p-4 sm:p-6 lg:p-8">
                     {STATUS_COLUMNS.map(status => {
                         const columnTasks = tasksByStatus[status] || [];
                         return (
