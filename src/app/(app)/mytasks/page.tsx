@@ -9,7 +9,7 @@ export default function MyTasksPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <MainHeader 
         title="My Tasks"
         showSearch={true}
@@ -17,6 +17,6 @@ export default function MyTasksPage() {
         onSearchChange={setSearchTerm}
       />
       <MyTasksClient searchTerm={searchTerm} />
-    </>
+    </div>
   );
 }
