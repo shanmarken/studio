@@ -89,7 +89,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3 w-3"/>
-                  <span>Due {format(new Date(task.endDate), "MMM d")}</span>
+                  <span>{format(new Date(task.startDate), "MMM d")} - {format(new Date(task.endDate), "MMM d")}</span>
                 </div>
             </div>
         </CardHeader>
@@ -128,8 +128,8 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
 
                 <Separator/>
 
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <UserAvatar name={task.assignedTo} />
                         <span>{task.assignedTo}</span>
                     </div>
