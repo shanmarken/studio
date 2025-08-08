@@ -87,7 +87,6 @@ export function CalendarView() {
     <div className="flex flex-col h-full bg-background text-foreground p-4 sm:p-6 lg:p-8 pt-0">
         <header className="flex items-center justify-between py-4 border-b border-border flex-shrink-0">
             <div className="flex items-center gap-4">
-                <Button variant="outline" onClick={() => setCurrentDate(new Date())}>Today</Button>
                 <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>
                         <ChevronLeft className="h-5 w-5" />
@@ -96,9 +95,6 @@ export function CalendarView() {
                         <ChevronRight className="h-5 w-5" />
                     </Button>
                 </div>
-                <h2 className="text-xl font-semibold">
-                    {format(startOfCurrentWeek, 'MMMM yyyy')}
-                </h2>
             </div>
              <div className="w-72">
                  <Calendar
