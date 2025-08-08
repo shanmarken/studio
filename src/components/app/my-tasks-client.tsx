@@ -315,10 +315,7 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
                                     
                                     {isCollapsed ? (
                                         <div className="h-full flex flex-col items-center justify-between py-4">
-                                             <div className='flex flex-col items-center gap-2'>
-                                                <ChevronsRight className={cn("h-4 w-4 transition-transform rotate-90 text-muted-foreground")} />
-                                                <div className={cn("w-2 h-2 rounded-full", statusColorMap[status])}></div>
-                                             </div>
+                                             <div className={cn("w-2 h-2 rounded-full", statusColorMap[status])}></div>
                                              <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground [writing-mode:vertical-rl] rotate-180">
                                                  {status}
                                              </h2>
@@ -395,5 +392,3 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
     </div>
   );
 }
-
-    
