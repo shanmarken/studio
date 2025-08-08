@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { BrainCircuit, LoaderCircle, BarChart3, AlertTriangle, UserCheck, FolderWarning } from "lucide-react";
+import { BrainCircuit, LoaderCircle, BarChart3, AlertTriangle, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateInsights, GenerateInsightsOutput } from "@/ai/flows/generate-insights";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -119,7 +119,7 @@ export default function InsightsPage() {
                                         <Card key={project.projectId}>
                                             <CardHeader>
                                                 <CardTitle className="flex items-center gap-2 text-lg">
-                                                    <FolderWarning className="text-amber-500" />
+                                                    <AlertTriangle className="text-amber-500" />
                                                     <Link href={`/projects/${project.projectId}`} className="hover:underline">
                                                         {project.projectName}
                                                     </Link>
@@ -189,4 +189,3 @@ export default function InsightsPage() {
         </main>
     );
 }
-
