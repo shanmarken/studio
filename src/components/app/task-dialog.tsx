@@ -25,13 +25,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, PlusCircle, Send, Trash2 } from 'lucide-react';
+import { CalendarIcon, PlusCircle, Send, Trash2, UploadCloud, File, Image as ImageIcon, FileText, FileQuestion } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Task, SubTask, Comment } from '@/lib/types';
+import { Task, SubTask, Comment, Attachment } from '@/lib/types';
 import { PHASES, PRIORITIES, STATUSES } from '@/lib/constants';
 import { useEffect, useMemo, useState } from 'react';
 import { Separator } from '../ui/separator';
@@ -43,6 +43,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
 import { UserAvatar } from './user-avatar';
 import { Badge } from '../ui/badge';
+
+const attachmentSchema = z.object({
+  name: z.string(),
+  url: z.string(),
+  type: z.string(),
+});
 
 const subTaskSchema = z.object({
   id: z.string(),
@@ -74,6 +80,7 @@ const taskSchema = z.object({
   phase: z.string().min(1, 'Phase is required'),
   subTasks: z.array(subTaskSchema).optional(),
   comments: z.array(commentSchema).optional(),
+  attachments: z.array(attachmentSchema).optional(),
   projectId: z.string().min(1, 'Project is required'),
 });
 
@@ -88,6 +95,14 @@ type TaskDialogProps = {
   defaultTab?: string;
   projectId?: string; // Add projectId prop
 };
+
+const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('image/')) return <ImageIcon className="h-6 w-6 text-primary" />;
+    if (fileType === 'application/pdf') return <FileText className="h-6 w-6 text-red-500" />;
+    if (fileType.includes('document')) return <File className="h-6 w-6 text-blue-500" />;
+    return <FileQuestion className="h-6 w-6 text-muted-foreground" />;
+};
+
 
 export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, defaultTab = "details", projectId }: TaskDialogProps) {
   const { user } = useAuth();
@@ -145,6 +160,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
       phase: '',
       subTasks: [],
       comments: [],
+      attachments: [],
       projectId: '',
     },
   });
@@ -159,6 +175,11 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
     name: "comments"
   });
 
+  const { fields: attachmentFields, append: appendAttachment, remove: removeAttachment } = useFieldArray({
+    control: form.control,
+    name: "attachments"
+  });
+
   useEffect(() => {
     if (taskToEdit) {
       form.reset({
@@ -169,6 +190,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
         percentComplete: taskToEdit.percentComplete || 0,
         subTasks: taskToEdit.subTasks || [],
         comments: taskToEdit.comments?.map(c => ({...c, createdAt: new Date(c.createdAt)})) || [],
+        attachments: taskToEdit.attachments || [],
       });
     } else {
       form.reset({
@@ -187,6 +209,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
         phase: PHASES[0],
         subTasks: [],
         comments: [],
+        attachments: [],
         projectId: projectId || '',
       });
     }
@@ -202,6 +225,26 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
             createdAt: new Date(),
         });
         setNewComment("");
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      for (const file of files) {
+        // In a real app, you would upload to Firebase Storage and get a URL.
+        // For this prototype, we'll use a placeholder URL and object URL for preview.
+        // This part would need to be replaced with actual upload logic.
+        const fileReader = new FileReader();
+        fileReader.onload = (e) => {
+            appendAttachment({
+              name: file.name,
+              url: e.target?.result as string, // This is a data URI
+              type: file.type,
+            });
+        };
+        fileReader.readAsDataURL(file);
+      }
     }
   };
 
@@ -221,11 +264,13 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
       assignedToId,
       id: taskToEdit?.id || new Date().toISOString(),
       subTasks: values.subTasks,
+      attachments: values.attachments,
     });
     onOpenChange(false);
   };
 
   const commentCount = form.watch('comments')?.length || 0;
+  const attachmentCount = form.watch('attachments')?.length || 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -239,9 +284,10 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger value="comments">Comments <Badge variant="secondary" className="ml-2">{commentCount}</Badge></TabsTrigger>
+                <TabsTrigger value="attachments">Attachments <Badge variant="secondary" className="ml-2">{attachmentCount}</Badge></TabsTrigger>
               </TabsList>
               <TabsContent value="details" className="flex-1 overflow-y-auto pr-2">
                 <div className="grid gap-4 py-4">
@@ -503,6 +549,36 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
                         <Button type="button" onClick={handleAddComment} disabled={!newComment.trim()}>
                           <Send className="h-4 w-4" />
                         </Button>
+                  </div>
+              </TabsContent>
+              <TabsContent value="attachments" className="flex-1 flex flex-col min-h-0 pt-4">
+                  <div className="flex-1 space-y-4">
+                      <div className="relative border-2 border-dashed rounded-lg p-8 text-center">
+                          <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
+                          <p className="mt-4 font-semibold text-foreground">Click to upload or drag and drop</p>
+                          <p className="text-sm text-muted-foreground">PDF, images, documents (up to 10MB)</p>
+                          <Input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} multiple />
+                      </div>
+
+                      {attachmentFields.length > 0 && (
+                          <ScrollArea className="h-48 pr-4 -mr-4">
+                            <div className="space-y-2">
+                              {attachmentFields.map((attachment, index) => (
+                                <div key={attachment.id} className="flex items-center gap-3 p-2 border rounded-md bg-muted/50">
+                                  {getFileIcon(attachment.type)}
+                                  <div className="flex-1 truncate">
+                                    <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline truncate">
+                                      {attachment.name}
+                                    </a>
+                                  </div>
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => removeAttachment(index)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                      )}
                   </div>
               </TabsContent>
             </Tabs>

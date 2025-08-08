@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { UserAvatar } from './user-avatar';
 import { Progress } from '../ui/progress';
 import { Button } from '../ui/button';
-import { BrainCircuit, Edit, Trash2, ArrowRightCircle, Folder, Calendar, MessageSquare } from 'lucide-react';
+import { BrainCircuit, Edit, Trash2, ArrowRightCircle, Folder, Calendar, MessageSquare, Paperclip } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
@@ -49,6 +49,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
   
   const hasSubtasks = task.subTasks && task.subTasks.length > 0;
   const commentCount = task.comments?.length || 0;
+  const attachmentCount = task.attachments?.length || 0;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -134,18 +135,23 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     </div>
                 </div>
 
-                {task.projectName && (
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Folder className="h-4 w-4" />
-                      <span className="font-medium">{task.projectName}</span>
-                    </div>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    {task.projectName ? (
+                        <div className="flex items-center gap-2">
+                          <Folder className="h-4 w-4" />
+                          <span className="font-medium">{task.projectName}</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5" />
+                          <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
+                        </div>
+                    )}
                     <div className="flex items-center gap-1.5">
                       <Calendar className="h-4 w-4" />
                       <span>{format(task.endDate, 'MMM d')}</span>
                     </div>
-                  </div>
-                )}
+                </div>
                 
                 {hasSubtasks && (
                     <div className="space-y-2">
@@ -183,6 +189,13 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                         </div>
                     </div>
                 )}
+                 {attachmentCount > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Paperclip className="h-4 w-4" />
+                    <span>{attachmentCount} attachment{attachmentCount > 1 ? 's' : ''}</span>
+                  </div>
+                )}
+
 
                 <Separator/>
 

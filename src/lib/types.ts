@@ -4,6 +4,12 @@ export type Status = 'To Do' | 'In Progress' | 'Completed' | 'Blocked';
 export type Priority = 'High' | 'Medium' | 'Low';
 export type UserRole = 'admin' | 'developer' | 'management';
 
+export type Attachment = {
+  name: string;
+  url: string;
+  type: string;
+};
+
 export type Comment = {
   id: string;
   author: string;
@@ -35,5 +41,6 @@ export type Task = {
   phase: string;
   subTasks?: SubTask[];
   comments?: Comment[];
+  attachments?: Attachment[];
   projectId?: string;
 };
