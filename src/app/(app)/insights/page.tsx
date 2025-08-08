@@ -59,9 +59,9 @@ export default function InsightsPage() {
     }
 
     return (
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-muted/40">
-            <div className="max-w-6xl mx-auto">
-                <Card>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-muted/40 flex flex-col">
+            <div className="max-w-6xl mx-auto w-full flex flex-col flex-1">
+                <Card className="flex flex-col flex-1">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle>Project Insights</CardTitle>
@@ -78,9 +78,9 @@ export default function InsightsPage() {
                             {loading ? 'Analyzing...' : 'Generate Report'}
                         </Button>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1">
                        {loading && (
-                         <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg">
+                         <div className="flex flex-col items-center justify-center h-full border-2 border-dashed rounded-lg">
                             <LoaderCircle className="h-12 w-12 animate-spin text-primary mb-4" />
                             <p className="text-lg font-semibold text-muted-foreground">Analyzing your projects...</p>
                             <p className="text-sm text-muted-foreground">This may take a moment.</p>
@@ -88,7 +88,7 @@ export default function InsightsPage() {
                        )}
 
                        {!loading && !report && (
-                         <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg text-center p-4">
+                         <div className="flex flex-col items-center justify-center h-full border-2 border-dashed rounded-lg text-center p-4">
                             <BarChart3 className="h-12 w-12 text-muted-foreground mb-8" />
                             <h3 className="text-lg font-semibold mb-2">Welcome to Project Insights</h3>
                             <p className="text-sm text-muted-foreground">
@@ -98,7 +98,7 @@ export default function InsightsPage() {
                        )}
 
                        {!loading && report && (
-                         <div className="space-y-6">
+                         <div className="space-y-6 h-full overflow-y-auto">
                             {/* Overall Summary */}
                             <section>
                                 <h2 className="text-xl font-bold tracking-tight mb-2">Overall Summary</h2>
