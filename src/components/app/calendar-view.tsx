@@ -11,7 +11,7 @@ import { LoaderCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '../ui/badge';
-import { isSameDay, addDays, startOfWeek, format, eachDayOfInterval, addWeeks, subWeeks, isToday } from 'date-fns';
+import { isSameDay, addDays, startOfWeek, format, eachDayOfInterval, addWeeks, subWeeks, isToday, getMonth } from 'date-fns';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -92,14 +92,16 @@ export function CalendarView() {
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
         setSelectedDate(date);
-        setCurrentDate(date);
+        if (getMonth(date) !== getMonth(currentDate)) {
+            setCurrentDate(date);
+        }
     }
   }
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground p-4 sm:p-6 lg:p-8 pt-0">
         <header className="flex items-start justify-between py-4 border-b border-border flex-shrink-0 gap-8">
-            <Card className="flex-1 h-64">
+            <Card className="flex-1 h-64 bg-muted/40">
                 <CardHeader>
                     <CardTitle>Tasks Due: {format(selectedDate, 'MMMM d')}</CardTitle>
                 </CardHeader>
@@ -109,7 +111,7 @@ export function CalendarView() {
                             <div className="space-y-2">
                             {dueTasks.map(task => (
                                 <Link href={`/projects/${task.projectId}`} key={task.id}>
-                                    <div className="p-2 rounded-md bg-muted hover:bg-muted/80 transition-colors cursor-pointer">
+                                    <div className="p-2 rounded-md bg-background hover:bg-background/80 transition-colors cursor-pointer shadow-sm border">
                                         <p className="font-semibold text-sm">{task.name}</p>
                                         <p className="text-xs text-muted-foreground">{task.projectName}</p>
                                     </div>
@@ -129,7 +131,8 @@ export function CalendarView() {
                      <Calendar
                         mode="single"
                         onSelect={handleDateSelect}
-                        selected={selectedDate}
+                        month={currentDate}
+                        onMonthChange={setCurrentDate}
                         className="rounded-md border hidden lg:block"
                     />
                 </div>
