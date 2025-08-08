@@ -86,7 +86,7 @@ export default function InsightsPage() {
 
                    {!loading && !report && (
                      <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg text-center p-4">
-                        <BarChart3 className="h-12 w-12 text-muted-foreground mb-6" />
+                        <BarChart3 className="h-12 w-12 text-muted-foreground mb-8" />
                         <h3 className="text-lg font-semibold mb-2">Welcome to Project Insights</h3>
                         <p className="text-sm text-muted-foreground">
                             Click the &quot;Generate Report&quot; button to get a complete analysis of your ongoing projects.
