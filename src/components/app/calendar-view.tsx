@@ -11,7 +11,7 @@ import { LoaderCircle, ChevronLeft, ChevronRight, Search, Plus, Calendar as Cale
 import Link from 'next/link';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '../ui/badge';
-import { isSameDay, addDays, startOfWeek, format, eachDayOfInterval, addWeeks, subWeeks, isToday, getMonth } from 'date-fns';
+import { isSameDay, addDays, startOfWeek, format, eachDayOfInterval, addWeeks, subWeeks, isToday, getMonth, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -33,14 +33,26 @@ export function CalendarView() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
 
   const weekStartsOn = 1; // Monday
 
   const startOfCurrentWeek = startOfWeek(currentDate, { weekStartsOn });
-  const daysInWeek = eachDayOfInterval({
-    start: startOfCurrentWeek,
-    end: addDays(startOfCurrentWeek, 6),
-  });
+  
+  const days = useMemo(() => {
+    if (viewMode === 'week') {
+      return eachDayOfInterval({
+        start: startOfCurrentWeek,
+        end: addDays(startOfCurrentWeek, 6),
+      });
+    }
+    if (viewMode === 'day') {
+      return [selectedDate];
+    }
+    // Placeholder for month view
+    return [];
+  }, [viewMode, currentDate, selectedDate, startOfCurrentWeek]);
+
 
    useEffect(() => {
     const fetchTasks = async () => {
@@ -84,12 +96,12 @@ export function CalendarView() {
 
   const tasksByDay = useMemo(() => {
     const grouped: { [key: string]: TaskWithProject[] } = {};
-    daysInWeek.forEach(day => {
+    days.forEach(day => {
         const dayKey = format(day, 'yyyy-MM-dd');
         grouped[dayKey] = tasks.filter(task => isSameDay(task.endDate, day));
     });
     return grouped;
-  }, [tasks, daysInWeek]);
+  }, [tasks, days]);
 
   const dueTasks = useMemo(() => {
     return tasks.filter(task => isSameDay(task.endDate, selectedDate));
@@ -114,6 +126,36 @@ export function CalendarView() {
     console.log("Saving task", task);
   };
 
+  const handlePrev = () => {
+    if (viewMode === 'week') {
+      setCurrentDate(subWeeks(currentDate, 1));
+    } else if (viewMode === 'day') {
+      const newDate = addDays(selectedDate, -1);
+      setSelectedDate(newDate);
+      setCurrentDate(newDate);
+    }
+  };
+
+  const handleNext = () => {
+    if (viewMode === 'week') {
+      setCurrentDate(addWeeks(currentDate, 1));
+    } else if (viewMode === 'day') {
+        const newDate = addDays(selectedDate, 1);
+        setSelectedDate(newDate);
+        setCurrentDate(newDate);
+    }
+  };
+  
+  const getHeaderText = () => {
+    if (viewMode === 'week') {
+      return format(startOfCurrentWeek, 'MMMM yyyy');
+    }
+    if (viewMode === 'day') {
+      return format(selectedDate, 'MMMM d, yyyy');
+    }
+    return '';
+  }
+
 
   return (
     <>
@@ -122,13 +164,13 @@ export function CalendarView() {
              <div className='flex items-center justify-between gap-4 py-2 px-4 sm:px-6'>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={() => handleDateSelect(new Date())}>Today</Button>
-                    <Button variant="outline" size="icon" onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>
+                    <Button variant="outline" size="icon" onClick={handlePrev}>
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
-                     <Button variant="outline" size="icon" onClick={() => setCurrentDate(addWeeks(currentDate, 1))}>
+                     <Button variant="outline" size="icon" onClick={handleNext}>
                         <ChevronRight className="h-4 w-4" />
                     </Button>
-                    <h2 className="text-xl font-semibold">{format(startOfCurrentWeek, 'MMMM yyyy')}</h2>
+                    <h2 className="text-xl font-semibold">{getHeaderText()}</h2>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="relative">
@@ -137,14 +179,14 @@ export function CalendarView() {
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline">
-                                Week <ChevronDown className="ml-2 h-4 w-4" />
+                            <Button variant="outline" className='capitalize'>
+                                {viewMode} <ChevronDown className="ml-2 h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuItem>Day</DropdownMenuItem>
-                            <DropdownMenuItem>Week</DropdownMenuItem>
-                            <DropdownMenuItem>Month</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setViewMode('day')}>Day</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setViewMode('week')}>Week</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setViewMode('month')} disabled>Month</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                     <Button onClick={handleAddTask}>
@@ -211,8 +253,8 @@ export function CalendarView() {
                             ))}
                         </div>
                         {/* Days columns */}
-                        <div className="grid grid-cols-7 border-l border-border/50">
-                            {daysInWeek.map(day => (
+                        <div className={cn("grid border-l border-border/50", viewMode === 'week' ? "grid-cols-7" : "grid-cols-1")}>
+                            {days.map(day => (
                                 <div key={day.toString()} className="border-r border-border/50 relative">
                                     <div className="sticky top-[65px] bg-background/90 backdrop-blur-sm z-10 text-center py-2 border-b border-border/50 h-16 flex flex-col justify-center">
                                         <div className="text-sm uppercase text-muted-foreground">{format(day, 'EEE')}</div>
