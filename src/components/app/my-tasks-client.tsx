@@ -2,12 +2,13 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, getDocs, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task, Status } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoaderCircle } from 'lucide-react';
+import Link from 'next/link';
 import { TaskCard } from './task-card';
 
 const STATUS_COLUMNS: Status[] = ['To Do', 'In Progress', 'Completed', 'Blocked'];
@@ -16,15 +17,6 @@ interface TaskWithProject extends Task {
   projectName: string;
   projectId: string;
 }
-
-const EmptyTaskCardCallbacks = {
-    onEdit: () => {},
-    onSuggest: () => {},
-    onDelete: () => {},
-    onPromote: () => {},
-    onCompleteToggle: () => {},
-    onSubTaskToggle: () => {},
-};
 
 export function MyTasksClient() {
   const { user } = useAuth();
