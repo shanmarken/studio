@@ -63,11 +63,19 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     className="mt-1"
                     disabled={hasSubtasks}
                     />
-                    <CollapsibleTrigger asChild>
-                      <div className="flex-1 text-left min-w-0">
-                        <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer font-semibold", hasSubtasks && "cursor-default")}>{task.name}</label>
-                      </div>
-                    </CollapsibleTrigger>
+                    <div className="flex-1 flex items-center gap-2 min-w-0">
+                        <CollapsibleTrigger asChild>
+                            <div className="flex-1 text-left min-w-0">
+                                <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer font-semibold", hasSubtasks && "cursor-default")}>{task.name}</label>
+                            </div>
+                        </CollapsibleTrigger>
+                         <Button variant="ghost" size="icon" onClick={() => onEdit(task, 'comments')} className="h-6 w-6 shrink-0 text-muted-foreground relative">
+                            <MessageSquare className="size-4" />
+                            {commentCount > 0 && (
+                                <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
+                            )}
+                        </Button>
+                    </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                     <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
@@ -147,13 +155,6 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                   <Button variant="ghost" size="sm" onClick={() => onSuggest(task)} className="gap-2">
                     <BrainCircuit className="size-4" />
                     Suggest
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => onEdit(task, 'comments')} className="gap-2 relative">
-                    <MessageSquare className="size-4" />
-                    Comment
-                    {commentCount > 0 && (
-                      <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 justify-center text-xs">{commentCount}</Badge>
-                    )}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => onEdit(task)} className="gap-2">
                       <Edit className="size-4" />
