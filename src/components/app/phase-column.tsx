@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Task } from '@/lib/types';
@@ -11,7 +12,7 @@ interface TaskWithProject extends Task {
 type PhaseColumnProps = {
   phase: string;
   tasks: TaskWithProject[];
-  onEditTask: (task: Task) => void;
+  onEditTask: (task: Task, defaultTab?: string) => void;
   onSuggestUpdate: (task: Task) => void;
   onDeleteTask: (task: Task) => void;
   onPromoteTask: (task: Task) => void;

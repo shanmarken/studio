@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -38,6 +39,8 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [taskToPromote, setTaskToPromote] = useState<Task | null>(null);
   const { toast } = useToast();
   const [collapsedColumns, setCollapsedColumns] = useState<Record<string, boolean>>({});
+  const [defaultTaskDialogTab, setDefaultTaskDialogTab] = useState<string | undefined>(undefined);
+
 
   useEffect(() => {
     if (!user || !projectId) return;
@@ -55,6 +58,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
           projectId, // Ensure projectId is attached
           startDate: new Date(data.startDate),
           endDate: new Date(data.endDate),
+          comments: data.comments?.map((c: any) => ({...c, createdAt: new Date(c.createdAt)})) || []
         } as Task);
       });
       
@@ -84,11 +88,13 @@ export default function Dashboard({ projectId }: DashboardProps) {
 
 
   const handleAddTask = () => {
+    setDefaultTaskDialogTab(undefined);
     setTaskToEdit(null);
     setIsTaskDialogOpen(true);
   };
 
-  const handleEditTask = (task: Task) => {
+  const handleEditTask = (task: Task, defaultTab?: string) => {
+    setDefaultTaskDialogTab(defaultTab);
     setTaskToEdit(task);
     setIsTaskDialogOpen(true);
   };
@@ -136,6 +142,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
         endDate: task.endDate.toISOString(),
         dependencies: task.dependencies || '',
         notes: task.notes || '',
+        comments: task.comments?.map(c => ({...c, createdAt: c.createdAt.toISOString()})) || []
     };
     
     delete taskData.id;
@@ -345,6 +352,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
         onSave={handleSaveTask}
         taskToEdit={taskToEdit}
         tasks={tasks}
+        defaultTab={defaultTaskDialogTab}
       />
       
       <SuggestUpdateDialog

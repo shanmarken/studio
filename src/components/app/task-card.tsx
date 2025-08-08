@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Task } from '@/lib/types';
@@ -8,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { UserAvatar } from './user-avatar';
 import { Progress } from '../ui/progress';
 import { Button } from '../ui/button';
-import { BrainCircuit, Edit, Trash2, ArrowRightCircle, Folder, Calendar } from 'lucide-react';
+import { BrainCircuit, Edit, Trash2, ArrowRightCircle, Folder, Calendar, MessageSquare } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
@@ -22,7 +23,7 @@ interface TaskWithProject extends Task {
 
 type TaskCardProps = {
   task: TaskWithProject;
-  onEdit: (task: Task) => void;
+  onEdit: (task: Task, defaultTab?: string) => void;
   onSuggest: (task: Task) => void;
   onDelete: (task: Task) => void;
   onPromote: (task: Task) => void;
@@ -47,6 +48,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
   };
   
   const hasSubtasks = task.subTasks && task.subTasks.length > 0;
+  const commentCount = task.comments?.length || 0;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -142,26 +144,32 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                 <Separator/>
 
                 <div className="flex items-center justify-end gap-2">
-                {task.status === 'Completed' ? (
-                    <Button variant="outline" size="sm" onClick={() => onPromote(task)} className="gap-2">
-                        <ArrowRightCircle className="size-4" />
-                        Promote
-                    </Button>
-                ) : (
-                    <Button variant="ghost" size="sm" onClick={() => onSuggest(task)} className="gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => onSuggest(task)} className="gap-2">
                     <BrainCircuit className="size-4" />
                     Suggest
-                    </Button>
-                )}
-
-                <Button variant="ghost" size="sm" onClick={() => onEdit(task)} className="gap-2">
-                    <Edit className="size-4" />
-                    Edit
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => onDelete(task)} className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
-                    <Trash2 className="size-4" />
-                    Delete
-                </Button>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => onEdit(task, 'comments')} className="gap-2 relative">
+                    <MessageSquare className="size-4" />
+                    Comment
+                    {commentCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 justify-center text-xs">{commentCount}</Badge>
+                    )}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => onEdit(task)} className="gap-2">
+                      <Edit className="size-4" />
+                      Edit
+                  </Button>
+                  {task.status === 'Completed' ? (
+                      <Button variant="outline" size="sm" onClick={() => onPromote(task)} className="gap-2">
+                          <ArrowRightCircle className="size-4" />
+                          Promote
+                      </Button>
+                  ) : (
+                      <Button variant="ghost" size="sm" onClick={() => onDelete(task)} className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
+                          <Trash2 className="size-4" />
+                          Delete
+                      </Button>
+                  )}
                 </div>
             </div>
           </CardContent>
@@ -170,4 +178,3 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
     </Collapsible>
   );
 }
-

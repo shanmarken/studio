@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -52,6 +53,7 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isPromoteDialogOpen, setIsPromoteDialogOpen] = useState(false);
   const [taskToPromote, setTaskToPromote] = useState<Task | null>(null);
+  const [defaultTaskDialogTab, setDefaultTaskDialogTab] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!user?.uid) {
@@ -84,6 +86,7 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
               projectId: projectRef.id,
               startDate: new Date(taskData.startDate),
               endDate: new Date(taskData.endDate),
+              comments: taskData.comments?.map((c: any) => ({...c, createdAt: new Date(c.createdAt)})) || []
             };
           })
         );
@@ -131,7 +134,8 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
   };
 
 
-  const handleEditTask = (task: Task) => {
+  const handleEditTask = (task: Task, defaultTab?: string) => {
+    setDefaultTaskDialogTab(defaultTab);
     setTaskToEdit(task);
     setIsTaskDialogOpen(true);
   };
@@ -190,6 +194,7 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
             endDate: task.endDate.toISOString(),
             dependencies: task.dependencies || '',
             notes: task.notes || '',
+            comments: task.comments?.map(c => ({...c, createdAt: c.createdAt.toISOString()})) || []
         };
         
         delete taskData.id;
@@ -382,6 +387,7 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
             onSave={handleSaveTask}
             taskToEdit={taskToEdit}
             tasks={tasks}
+            defaultTab={defaultTaskDialogTab}
         />
         
         <SuggestUpdateDialog

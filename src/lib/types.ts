@@ -1,7 +1,16 @@
 
+
 export type Status = 'To Do' | 'In Progress' | 'Completed' | 'Blocked';
 export type Priority = 'High' | 'Medium' | 'Low';
 export type UserRole = 'admin' | 'developer' | 'management';
+
+export type Comment = {
+  id: string;
+  author: string;
+  authorId: string;
+  text: string;
+  createdAt: Date;
+};
 
 export type SubTask = {
   id: string;
@@ -25,5 +34,6 @@ export type Task = {
   notes?: string;
   phase: string;
   subTasks?: SubTask[];
+  comments?: Comment[];
   projectId?: string;
 };
