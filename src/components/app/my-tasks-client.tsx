@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, collectionGroup } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task, Status } from '@/lib/types';
@@ -47,65 +47,50 @@ export function MyTasksClient() {
       setLoading(false);
       return;
     }
-  
+    
     setLoading(true);
-  
-    const projectsQuery = query(collection(db, 'projects'));
-  
-    const unsubscribeProjects = onSnapshot(projectsQuery, (projectsSnapshot) => {
-        const projects = projectsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            name: doc.data().name,
-        }));
-  
-        if (projects.length === 0) {
-            setTasks([]);
-            setLoading(false);
-            return;
-        }
-  
-        let allTasks: TaskWithProject[] = [];
-        const taskUnsubscribes = projects.map(project => {
-            const tasksQuery = query(
-                collection(db, `projects/${project.id}/tasks`),
-                where('assignedToId', '==', user.uid)
-            );
-            return onSnapshot(tasksQuery, (tasksSnapshot) => {
-                const projectTasks = tasksSnapshot.docs.map(taskDoc => {
-                    const taskData = taskDoc.data();
-                    return {
-                        ...(taskData as Task),
-                        id: taskDoc.id,
-                        projectName: project.name,
-                        projectId: project.id,
-                        startDate: new Date(taskData.startDate),
-                        endDate: new Date(taskData.endDate),
-                    };
-                });
-                
-                // Filter out tasks from this project that are already in allTasks and add the new ones
-                allTasks = allTasks.filter(t => t.projectId !== project.id).concat(projectTasks);
-                setTasks([...allTasks]);
-            }, (error) => {
-                console.error(`Error fetching tasks for project ${project.id}:`, error);
-                toast({ variant: 'destructive', title: 'Error', description: `Failed to load tasks for ${project.name}.` });
-            });
-        });
-  
-        setLoading(false); // Set loading to false once we have set up listeners for all projects.
+
+    const tasksQuery = query(
+      collectionGroup(db, 'tasks'),
+      where('assignedToId', '==', user.uid)
+    );
+
+    const unsubscribe = onSnapshot(tasksQuery, async (tasksSnapshot) => {
+      try {
+        const tasksData = await Promise.all(
+          tasksSnapshot.docs.map(async (taskDoc) => {
+            const taskData = taskDoc.data();
+            const projectRef = taskDoc.ref.parent.parent;
+            if (!projectRef) return null;
+
+            const projectSnap = await getDoc(projectRef);
+            const projectName = projectSnap.exists() ? projectSnap.data().name : 'Unknown Project';
+            
+            return {
+              ...(taskData as Task),
+              id: taskDoc.id,
+              projectName: projectName,
+              projectId: projectRef.id,
+              startDate: new Date(taskData.startDate),
+              endDate: new Date(taskData.endDate),
+            };
+          })
+        );
         
-        return () => {
-            unsubscribeProjects();
-            taskUnsubscribes.forEach(unsub => unsub());
-        };
-  
-    }, (error) => {
-        console.error("Error fetching projects:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load projects.' });
+        setTasks(tasksData.filter(Boolean) as TaskWithProject[]);
+      } catch (error) {
+        console.error("Error processing tasks:", error);
+        toast({ variant: 'destructive', title: 'Error', description: `Failed to load tasks.` });
+      } finally {
         setLoading(false);
+      }
+    }, (error) => {
+      console.error(`Error fetching tasks:`, error);
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to load tasks.` });
+      setLoading(false);
     });
-  
-    return () => unsubscribeProjects();
+
+    return () => unsubscribe();
   }, [user, toast]);
 
 
@@ -287,7 +272,7 @@ export function MyTasksClient() {
 
 
   return (
-    <div className="bg-background">
+    <div className="flex flex-col h-full overflow-x-auto">
         <header className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b">
             <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
                 <h1 className="text-2xl font-bold">My Tasks</h1>
@@ -308,50 +293,48 @@ export function MyTasksClient() {
                 </div>
             </div>
         </header>
-        <main className="bg-muted/40">
+        <main className="flex-1 bg-muted/40 p-4 sm:p-6 lg:p-8">
             {loading ? (
-                <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+                <div className="flex h-full items-center justify-center">
                     <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                 </div>
             ) : (
-                <div className="p-4 sm:p-6 lg:p-8">
-                    <div className="flex gap-8">
-                        {STATUS_COLUMNS.map(status => {
-                            const columnTasks = tasksByStatus[status] || [];
-                            return (
-                                <div key={status} className="flex-shrink-0 w-80 md:w-96 flex flex-col">
-                                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
-                                        <div className={`w-3 h-3 rounded-full ${statusColorMap[status]}`}></div>
-                                        <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
-                                            {status}
-                                        </h2>
-                                        <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                                            {columnTasks.length}
-                                        </span>
-                                    </div>
-                                    <div className="space-y-4">
-                                        {columnTasks.map(task => (
-                                        <TaskCard 
-                                            key={task.id} 
-                                            task={task} 
-                                            onEdit={handleEditTask}
-                                            onSuggest={handleSuggestUpdate}
-                                            onDelete={handleDeleteRequest}
-                                            onPromote={handlePromoteRequest}
-                                            onCompleteToggle={handleTaskCompleteToggle}
-                                            onSubTaskToggle={handleSubTaskToggle}
-                                        />
-                                        ))}
-                                        {columnTasks.length === 0 && (
-                                            <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
-                                                No tasks here.
-                                            </div>
-                                        )}
-                                    </div>
+                <div className="flex gap-8 h-full">
+                    {STATUS_COLUMNS.map(status => {
+                        const columnTasks = tasksByStatus[status] || [];
+                        return (
+                            <div key={status} className="flex-shrink-0 w-80 md:w-96 flex flex-col">
+                                <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                                    <div className={`w-3 h-3 rounded-full ${statusColorMap[status]}`}></div>
+                                    <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
+                                        {status}
+                                    </h2>
+                                    <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                                        {columnTasks.length}
+                                    </span>
                                 </div>
-                            )
-                        })}
-                    </div>
+                                <div className="space-y-4 overflow-y-auto flex-1">
+                                    {columnTasks.map(task => (
+                                    <TaskCard 
+                                        key={task.id} 
+                                        task={task} 
+                                        onEdit={handleEditTask}
+                                        onSuggest={handleSuggestUpdate}
+                                        onDelete={handleDeleteRequest}
+                                        onPromote={handlePromoteRequest}
+                                        onCompleteToggle={handleTaskCompleteToggle}
+                                        onSubTaskToggle={handleSubTaskToggle}
+                                    />
+                                    ))}
+                                    {columnTasks.length === 0 && (
+                                        <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                                            No tasks here.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    })}
                 </div>
             )}
         </main>
@@ -385,5 +368,4 @@ export function MyTasksClient() {
         />
     </div>
   );
-
-    
+}
