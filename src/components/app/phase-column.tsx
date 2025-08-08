@@ -4,9 +4,13 @@
 import { Task } from '@/lib/types';
 import { TaskCard } from './task-card';
 
+interface TaskWithProject extends Task {
+  projectName?: string;
+}
+
 type PhaseColumnProps = {
   phase: string;
-  tasks: Task[];
+  tasks: TaskWithProject[];
   onEditTask: (task: Task) => void;
   onSuggestUpdate: (task: Task) => void;
   onDeleteTask: (task: Task) => void;
