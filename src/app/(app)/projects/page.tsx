@@ -60,24 +60,16 @@ export default function ProjectsPage() {
     
     let projectsQuery;
     if (user.role === 'admin') {
-      // Admin sees all projects from all users
       projectsQuery = query(collection(db, 'projects'));
     } else {
-      // Other users see only their own projects
       projectsQuery = query(collection(db, `users/${user.uid}/projects`));
     }
 
     const unsubscribe = onSnapshot(projectsQuery, async (querySnapshot) => {
         const projectsDataPromises = querySnapshot.docs.map(async (projectDoc) => {
             const projectData = projectDoc.data();
-            const ownerId = projectData.ownerId;
+            const ownerId = projectData.ownerId || user.uid; // Fallback to current user's UID
 
-            // Ensure we have an ownerId to proceed
-            if (!ownerId) {
-                console.warn(`Project ${projectDoc.id} is missing an ownerId.`);
-                return null;
-            }
-            
             const tasksPath = `users/${ownerId}/projects/${projectDoc.id}/tasks`;
 
             const tasksRef = collection(db, tasksPath);
