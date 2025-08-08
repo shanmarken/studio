@@ -106,7 +106,7 @@ export function CalendarView() {
   }, [tasks, days]);
 
   const dueTasks = useMemo(() => {
-    return tasks.filter(task => isSameDay(task.endDate, selectedDate));
+    return tasks.filter(task => isSameDay(task.endDate, selectedDate) && task.status !== 'Completed');
   }, [tasks, selectedDate]);
 
   const timeSlots = Array.from({ length: 11 }, (_, i) => `${i + 8}:00`); // 8am to 6pm
@@ -195,7 +195,7 @@ export function CalendarView() {
       return format(startOfCurrentWeek, 'MMMM yyyy');
     }
     if (viewMode === 'day') {
-      return format(selectedDate, 'MMMM d, yyyy');
+      return format(selectedDate, 'EEEE, MMMM d');
     }
     return '';
   }
