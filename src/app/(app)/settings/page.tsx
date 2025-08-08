@@ -13,9 +13,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { TeamMembersTable } from "@/components/app/team-members-table";
 import { useAuth } from "@/hooks/use-auth";
-import { UserPlus } from "lucide-react";
+import { Calendar, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { InviteUserDialog } from "@/components/app/invite-user-dialog";
+import { Badge } from "@/components/ui/badge";
 
 const companyProfileSchema = z.object({
     companyName: z.string().min(2, { message: "Company name must be at least 2 characters." }),
@@ -51,6 +52,14 @@ export default function SettingsPage() {
     });
   }
 
+  function handleConnectCalendar() {
+    // Placeholder for future implementation
+    toast({
+        title: "Coming Soon!",
+        description: "Google Calendar integration is under development."
+    })
+  }
+
   if (user?.role !== 'admin') {
     return (
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -71,9 +80,10 @@ export default function SettingsPage() {
     <>
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
              <Tabs defaultValue="team" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 max-w-md">
+                <TabsList className="grid w-full grid-cols-3 max-w-md">
                     <TabsTrigger value="team">Team Management</TabsTrigger>
                     <TabsTrigger value="profile">Company Profile</TabsTrigger>
+                    <TabsTrigger value="integrations">Integrations</TabsTrigger>
                 </TabsList>
                 <TabsContent value="team" className="mt-4">
                     <Card>
@@ -160,6 +170,31 @@ export default function SettingsPage() {
                             </form>
                         </Form>
                     </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="integrations" className="mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Integrations</CardTitle>
+                            <CardDescription>Connect your account to other services.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <Card className="bg-muted/40">
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-lg">Google Calendar</CardTitle>
+                                        <CardDescription>Sync your project tasks and deadlines.</CardDescription>
+                                    </div>
+                                     <Badge variant="secondary">Not Connected</Badge>
+                                </CardHeader>
+                                <CardContent>
+                                    <Button onClick={handleConnectCalendar}>
+                                        <Calendar className="mr-2 h-4 w-4" />
+                                        Connect to Google Calendar
+                                    </Button>
+                                </CardContent>
+                           </Card>
+                        </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
