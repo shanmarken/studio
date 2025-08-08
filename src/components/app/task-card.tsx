@@ -51,7 +51,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <Card className="mb-4 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow duration-300">
-        <CardHeader className="p-4 flex flex-col gap-3">
+        <CardHeader className="p-4">
             <div className="flex justify-between items-start gap-2">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
                     <Checkbox
@@ -61,35 +61,16 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     className="mt-1"
                     disabled={hasSubtasks}
                     />
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base font-semibold tracking-normal">
-                        <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer", hasSubtasks && "cursor-default")}>{task.name}</label>
-                      </CardTitle>
-                    </div>
+                    <CollapsibleTrigger className="flex-1 min-w-0 text-left">
+                        <CardTitle className="text-base font-semibold tracking-normal">
+                          <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer", hasSubtasks && "cursor-default")}>{task.name}</label>
+                        </CardTitle>
+                    </CollapsibleTrigger>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                     <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
                         {task.priority}
                     </Badge>
-                    <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                            <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-                        </Button>
-                    </CollapsibleTrigger>
-                </div>
-            </div>
-            <div className="pl-8 flex items-center justify-between text-xs text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  {task.projectName && (
-                    <>
-                      <Folder className="h-3 w-3" />
-                      <span className="font-medium">{task.projectName}</span>
-                    </>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-3 w-3"/>
-                  <span>{format(new Date(task.startDate), "MMM d")} - {format(new Date(task.endDate), "MMM d")}</span>
                 </div>
             </div>
         </CardHeader>
@@ -97,6 +78,13 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
           <CardContent className="p-4 pt-0">
             <div className="pl-8 space-y-4">
                 <p className="line-clamp-2 text-sm text-muted-foreground">{task.description}</p>
+                
+                {task.projectName && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Folder className="h-4 w-4" />
+                    <span className="font-medium">{task.projectName}</span>
+                  </div>
+                )}
                 
                 {hasSubtasks && (
                     <div className="space-y-2">
