@@ -52,6 +52,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
         loadedTasks.push({
           ...data,
           id: doc.id,
+          projectId, // Ensure projectId is attached
           startDate: new Date(data.startDate),
           endDate: new Date(data.endDate),
         } as Task);
@@ -128,18 +129,20 @@ export default function Dashboard({ projectId }: DashboardProps) {
         startDate: task.startDate.toISOString(),
         endDate: task.endDate.toISOString(),
     };
+    // @ts-ignore
+    delete taskData.id;
+    // @ts-ignore
+    delete taskData.projectId;
 
     try {
         if (isEditing) {
-            const taskRef = doc(db, 'projects', projectId, 'tasks', task.id);
-            // @ts-ignore
-            delete taskData.id;
+            if (!task.projectId) throw new Error("Project ID is missing");
+            const taskRef = doc(db, 'projects', task.projectId, 'tasks', task.id);
             await updateDoc(taskRef, taskData);
             toast({ title: "Task Updated", description: `"${taskName}" has been successfully updated.` });
         } else {
-            // @ts-ignore
-            delete taskData.id;
-            const docRef = await addDoc(collection(db, 'projects', projectId, 'tasks'), {
+             if (!task.projectId) throw new Error("Project ID is missing");
+            const docRef = await addDoc(collection(db, 'projects', task.projectId, 'tasks'), {
                 ...taskData,
                 createdAt: serverTimestamp()
             });
