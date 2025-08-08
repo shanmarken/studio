@@ -275,7 +275,7 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
 
 
   return (
-    <div className="flex flex-col flex-1 h-full bg-muted/40">
+    <div className="flex flex-col flex-1 h-full bg-muted/40 min-h-0">
         <main className="flex-1 flex flex-col min-h-0">
           {loading ? (
               <div className="flex h-full w-full items-center justify-center">

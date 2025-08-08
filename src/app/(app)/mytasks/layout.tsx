@@ -12,10 +12,12 @@ export default function MyTasksLayout({
 }) {
   return (
     <SidebarProvider>
-        <ProjectsSidebar />
-        <SidebarInset>
-            {children}
-        </SidebarInset>
+      <ProjectsSidebar />
+      <SidebarInset>
+        <div className="flex flex-col h-screen">
+          {children}
+        </div>
+      </SidebarInset>
     </SidebarProvider>
   );
 }
