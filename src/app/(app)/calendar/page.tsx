@@ -1,8 +1,8 @@
 
 'use client';
 
-import { CalendarView } from '@/components/app/calendar-view';
+import { WeekViewCalendar } from '@/components/app/week-view-calendar';
 
 export default function CalendarPage() {
-  return <CalendarView />;
+  return <WeekViewCalendar />;
 }
