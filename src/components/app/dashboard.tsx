@@ -33,52 +33,13 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isPromoteDialogOpen, setIsPromoteDialogOpen] = useState(false);
   const [taskToPromote, setTaskToPromote] = useState<Task | null>(null);
-  const [projectOwnerId, setProjectOwnerId] = useState<string | null>(null);
-  
   const { toast } = useToast();
 
   useEffect(() => {
     if (!user || !projectId) return;
-    
-    const findProjectOwner = async () => {
-        let ownerId: string | null = null;
-        // Check if the project belongs to the current user
-        const userProjectRef = doc(db, 'users', user.uid, 'projects', projectId);
-        const userProjectSnap = await getDoc(userProjectRef);
-
-        if (userProjectSnap.exists()) {
-            ownerId = user.uid;
-        } else if (user.role === 'admin') {
-            // If admin and not owner, find the owner by querying the collection group
-            const projectsQuery = query(collectionGroup(db, 'projects'), where('__name__', '==', projectId));
-            const querySnapshot = await getDocs(projectsQuery);
-            if (!querySnapshot.empty) {
-                // This will only find one, since project IDs are unique
-                ownerId = querySnapshot.docs[0].data().ownerId;
-            }
-        }
-        
-        if (ownerId) {
-            setProjectOwnerId(ownerId);
-        } else {
-            console.error("Could not find project or insufficient permissions.");
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Could not load project data. You may not have permission to view it.'
-            });
-            setLoading(false);
-        }
-    };
-
-    findProjectOwner();
-  }, [user, projectId, toast]);
-
-  useEffect(() => {
-    if (!projectOwnerId) return;
 
     setLoading(true);
-    const tasksQuery = query(collection(db, 'users', projectOwnerId, 'projects', projectId, 'tasks'));
+    const tasksQuery = query(collection(db, 'projects', projectId, 'tasks'));
 
     const unsubscribe = onSnapshot(tasksQuery, (querySnapshot) => {
       const loadedTasks: Task[] = [];
@@ -114,7 +75,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
     });
 
     return () => unsubscribe();
-  }, [projectOwnerId, projectId, toast]);
+  }, [projectId, toast, user]);
 
 
   const handleAddTask = () => {
@@ -133,10 +94,10 @@ export default function Dashboard({ projectId }: DashboardProps) {
   };
 
   const handleConfirmDelete = async () => {
-    if (taskToDelete && projectOwnerId) {
+    if (taskToDelete) {
         const taskName = taskToDelete.name;
         try {
-            const taskRef = doc(db, 'users', projectOwnerId, 'projects', projectId, 'tasks', taskToDelete.id);
+            const taskRef = doc(db, 'projects', projectId, 'tasks', taskToDelete.id);
             await deleteDoc(taskRef);
             toast({ title: 'Task Deleted', description: `"${taskName}" has been deleted.`});
         } catch (error) {
@@ -149,8 +110,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
   };
 
   const handleSaveTask = async (task: Task) => {
-    if (!projectOwnerId) return;
-
     const isEditing = !!task.id && tasks.some(t => t.id === task.id);
     let taskName = task.name;
     
@@ -168,7 +127,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
 
     try {
         if (isEditing) {
-            const taskRef = doc(db, 'users', projectOwnerId, 'projects', projectId, 'tasks', task.id);
+            const taskRef = doc(db, 'projects', projectId, 'tasks', task.id);
             // @ts-ignore
             delete taskData.id;
             await updateDoc(taskRef, taskData);
@@ -176,7 +135,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
         } else {
             // @ts-ignore
             delete taskData.id;
-            const docRef = await addDoc(collection(db, 'users', projectOwnerId, 'projects', projectId, 'tasks'), {
+            const docRef = await addDoc(collection(db, 'projects', projectId, 'tasks'), {
                 ...taskData,
                 createdAt: serverTimestamp()
             });
@@ -209,7 +168,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
   }
 
   const handleConfirmPromote = async (task: Task, newPhase: string) => {
-    if (!projectOwnerId) return;
     const newTaskData: Omit<Task, 'id'> = {
         ...task,
         phase: newPhase,
@@ -221,7 +179,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
     delete newTaskData.id; 
 
     try {
-        await addDoc(collection(db, 'users', projectOwnerId, 'projects', projectId, 'tasks'), {
+        await addDoc(collection(db, 'projects', projectId, 'tasks'), {
             ...newTaskData,
             startDate: newTaskData.startDate.toISOString(),
             endDate: newTaskData.endDate.toISOString(),
@@ -240,11 +198,10 @@ export default function Dashboard({ projectId }: DashboardProps) {
   };
 
   const handleTaskCompleteToggle = async (taskId: string, isComplete: boolean) => {
-    if (!projectOwnerId) return;
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    const taskRef = doc(db, 'users', projectOwnerId, 'projects', projectId, 'tasks', taskId);
+    const taskRef = doc(db, 'projects', projectId, 'tasks', taskId);
     let updateData: Partial<Task> = {};
     if (isComplete) {
       updateData = { status: 'Completed', percentComplete: 100 };
@@ -256,7 +213,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
   }
 
   const handleSubTaskToggle = async (taskId: string, subTaskId: string, isComplete: boolean) => {
-    if (!projectOwnerId) return;
     const task = tasks.find(t => t.id === taskId);
     if (!task || !task.subTasks) return;
 
@@ -279,7 +235,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
         }
     }
     
-    const taskRef = doc(db, 'users', projectOwnerId, 'projects', projectId, 'tasks', taskId);
+    const taskRef = doc(db, 'projects', projectId, 'tasks', taskId);
     await updateDoc(taskRef, {
         subTasks: updatedSubTasks,
         percentComplete: newPercentComplete,

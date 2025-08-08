@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { ProjectPulseLogo } from './project-pulse-logo';
 import { Button } from '../ui/button';
-import { LogOut, Settings, LayoutDashboard, BarChart3, ChevronsRightLeft, User, Building, ClipboardList, Calendar } from 'lucide-react';
+import { LogOut, Settings, LayoutDashboard, BarChart3, ChevronsRightLeft, User, Building, ClipboardList, Calendar, FolderKanban } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { auth, db } from '@/lib/firebase';
 import { UserAvatar } from './user-avatar';
@@ -42,7 +42,7 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
 
   useEffect(() => {
     if (user) {
-      const q = query(collection(db, 'users', user.uid, 'projects'));
+      const q = query(collection(db, 'projects'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
         setProjects(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project)));
       });
@@ -52,7 +52,7 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
 
   useEffect(() => {
     if (user && projectId) {
-      const docRef = doc(db, 'users', user.uid, 'projects', projectId);
+      const docRef = doc(db, 'projects', projectId);
       const unsub = onSnapshot(docRef, (doc) => {
         if (doc.exists()) {
           setCurrentProject({ id: doc.id, ...doc.data() } as Project);
@@ -74,7 +74,15 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
       <SidebarContent>
         <SidebarMenu>
             <SidebarMenuItem>
-                 <div className="w-full flex flex-col gap-1 p-2 border-b">
+                 <Link href="/projects" className="block w-full">
+                    <SidebarMenuButton tooltip="All Projects">
+                        <FolderKanban />
+                        <span>All Projects</span>
+                    </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                 <div className="w-full flex flex-col gap-1 p-2 border-y">
                     <div className="text-xs text-muted-foreground font-semibold px-2">
                         {isExpanded ? "Current Project" : "Project"}
                     </div>

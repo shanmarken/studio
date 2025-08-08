@@ -1,46 +1,18 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Match any document in the 'users' collection
     match /users/{userId} {
-      // Users can only read their own document
-      allow read: if request.auth != null && request.auth.uid == userId;
-      // Users can only create their own document upon signup
-      allow create: if request.auth != null && request.auth.uid == userId;
-      // Users can update their own document
-      allow update: if request.auth != null && request.auth.uid == userId;
+      allow read;
+      allow create, update, delete: if request.auth.uid == userId;
+    }
 
-      // Match documents in the 'projects' subcollection of a user
-      match /projects/{projectId} {
-        // Any authenticated user can read any project
-        allow read: if request.auth != null;
-        
-        // Only the owner can create, update, or delete their own projects
-        allow write: if request.auth != null && request.auth.uid == userId;
-        
-        // Match documents in the 'tasks' subcollection of a project
-        match /tasks/{taskId} {
-            // Project owner can read tasks
-            allow read: if request.auth != null && request.auth.uid == userId;
-            // Project owner can write tasks
-            allow write: if request.auth != null && request.auth.uid == userId;
-        }
+    match /projects/{projectId} {
+      allow read, create, update, delete: if request.auth != null;
+
+      match /tasks/{taskId} {
+        allow read, create, update, delete: if request.auth != null;
       }
-    }
-
-    // This rule allows the collectionGroup query for 'tasks' on the 'My Tasks' page.
-    // A user can read a task if they are assigned to it.
-    match /{path=**}/tasks/{taskId} {
-      allow read: if request.auth != null && resource.data.assignedToId == request.auth.uid;
-    }
-
-    // This rule allows the collectionGroup query for 'projects' on the main projects page.
-    // Any authenticated user can list and get all projects.
-    match /{path=**}/projects/{projectId} {
-        allow get, list: if request.auth != null;
     }
   }
 }

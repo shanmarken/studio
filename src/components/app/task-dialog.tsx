@@ -32,10 +32,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Task, SubTask } from '@/lib/types';
 import { PHASES, PRIORITIES, STATUSES } from '@/lib/constants';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { Combobox } from '../ui/combobox';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const subTaskSchema = z.object({
   id: z.string(),
@@ -47,6 +49,7 @@ const taskSchema = z.object({
   name: z.string().min(1, 'Task name is required'),
   description: z.string().min(1, 'Description is required'),
   assignedTo: z.string().min(1, 'Assignee is required'),
+  assignedToId: z.string().optional(),
   priority: z.enum(['High', 'Medium', 'Low']),
   estimatedHours: z.coerce.number().min(0, 'Must be a positive number'),
   startDate: z.date(),
@@ -71,14 +74,20 @@ type TaskDialogProps = {
 
 export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: TaskDialogProps) {
   const { user } = useAuth();
+  const [teamMembers, setTeamMembers] = useState<{label: string, value: string}[]>([]);
 
-  const teamMembers = useMemo(() => {
-    const allUsers = tasks.map(task => task.assignedTo);
-    if (user?.displayName && !allUsers.includes(user.displayName)) {
-        allUsers.push(user.displayName);
-    }
-    return [...new Set(allUsers)].sort().map(name => ({ value: name, label: name }));
-  }, [tasks, user]);
+  useEffect(() => {
+    const fetchUsers = async () => {
+        const usersRef = collection(db, 'users');
+        const usersSnap = await getDocs(usersRef);
+        const userList = usersSnap.docs.map(doc => ({
+            value: doc.data().displayName,
+            label: doc.data().displayName,
+        }));
+        setTeamMembers(userList);
+    };
+    fetchUsers();
+  }, []);
   
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -86,6 +95,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
       name: '',
       description: '',
       assignedTo: '',
+      assignedToId: '',
       priority: 'Medium',
       estimatedHours: 8,
       startDate: new Date(),
@@ -118,6 +128,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
         name: '',
         description: '',
         assignedTo: user?.displayName || '',
+        assignedToId: user?.uid || '',
         priority: 'Medium',
         estimatedHours: 8,
         startDate: new Date(),
@@ -132,9 +143,20 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks }: 
     }
   }, [taskToEdit, form, isOpen, user]);
 
-  const onSubmit = (values: TaskFormValues) => {
+  const onSubmit = async (values: TaskFormValues) => {
+    const assignedToName = values.assignedTo;
+    let assignedToId = '';
+
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where("displayName", "==", assignedToName));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+        assignedToId = querySnapshot.docs[0].id;
+    }
+
     onSave({
       ...values,
+      assignedToId,
       id: taskToEdit?.id || new Date().toISOString(),
       subTasks: values.subTasks,
     });

@@ -30,13 +30,13 @@ export function CalendarView() {
 
       setLoading(true);
       try {
-        const projectsQuery = query(collection(db, 'users', user.uid, 'projects'));
+        const projectsQuery = query(collection(db, 'projects'));
         const projectsSnapshot = await getDocs(projectsQuery);
         
         const allTasks: TaskWithProject[] = [];
 
         for (const projectDoc of projectsSnapshot.docs) {
-            const tasksQuery = query(collection(db, 'users', user.uid, 'projects', projectDoc.id, 'tasks'));
+            const tasksQuery = query(collection(db, 'projects', projectDoc.id, 'tasks'));
             const tasksSnapshot = await getDocs(tasksQuery);
 
             tasksSnapshot.forEach(taskDoc => {

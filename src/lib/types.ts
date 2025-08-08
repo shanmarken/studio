@@ -14,6 +14,7 @@ export type Task = {
   name: string;
   description: string;
   assignedTo: string;
+  assignedToId?: string;
   priority: Priority;
   estimatedHours: number;
   startDate: Date;

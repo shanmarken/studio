@@ -61,8 +61,7 @@ export default function ProjectsPage() {
   
     setLoading(true);
     
-    // Query all projects from all users
-    const projectsQuery = query(collectionGroup(db, 'projects'));
+    const projectsQuery = query(collection(db, 'projects'));
     
     const unsubscribe = onSnapshot(projectsQuery, (projectsSnapshot) => {
         const allProjects = projectsSnapshot.docs.map(doc => ({
@@ -81,14 +80,13 @@ export default function ProjectsPage() {
         let projectsProcessed = 0;
   
         allProjects.forEach(project => {
-            const tasksPath = `users/${project.ownerId}/projects/${project.id}/tasks`;
+            const tasksPath = `projects/${project.id}/tasks`;
             const tasksRef = collection(db, tasksPath);
   
             const taskUnsubscribe = onSnapshot(tasksRef, (tasksSnapshot) => {
                 const taskCount = tasksSnapshot.size;
                 const completedTaskCount = tasksSnapshot.docs.filter(d => d.data().status === 'Completed').length;
                 
-                // Find and update project or add if new
                 const existingProjectIndex = projectsWithTasks.findIndex(p => p.id === project.id);
                 if (existingProjectIndex > -1) {
                     projectsWithTasks[existingProjectIndex] = { ...projectsWithTasks[existingProjectIndex], taskCount, completedTaskCount };
@@ -96,10 +94,8 @@ export default function ProjectsPage() {
                     projectsWithTasks.push({ ...project, taskCount, completedTaskCount });
                 }
   
-                // Set projects state on each update to make it feel responsive
                 setProjects([...projectsWithTasks]);
 
-                // Initial loading state management
                 if (!project.hasOwnProperty('taskCount')) {
                     projectsProcessed++;
                 }
@@ -109,12 +105,10 @@ export default function ProjectsPage() {
                 }
             }, (error) => {
                 console.error(`Error loading tasks for project ${project.id}: `, error);
-                // We can choose to show projects even if tasks fail to load
             });
             unsubscribes.push(taskUnsubscribe);
         });
         
-        // This is a cleanup for the task listeners
         return () => {
             unsubscribes.forEach(unsub => unsub());
         };
@@ -138,7 +132,7 @@ export default function ProjectsPage() {
     if (!user) return;
 
     try {
-        const projectsCollectionPath = `users/${user.uid}/projects`;
+        const projectsCollectionPath = `projects`;
         const projectData = {
           ...project,
           createdAt: serverTimestamp(),
@@ -168,14 +162,8 @@ export default function ProjectsPage() {
   const handleConfirmDelete = async () => {
     if (!projectToDelete || !user) return;
     
-    // Only the project owner or an admin can delete
-    if (user.role !== 'admin' && projectToDelete.ownerId !== user.uid) {
-        toast({ variant: 'destructive', title: 'Error', description: 'You do not have permission to delete this project.' });
-        return;
-    }
-
     try {
-        const projectRef = doc(db, `users/${projectToDelete.ownerId}/projects`, projectToDelete.id);
+        const projectRef = doc(db, 'projects', projectToDelete.id);
         await deleteDoc(projectRef);
         
         toast({ title: 'Project Deleted', description: `"${projectToDelete?.name}" has been deleted.`});

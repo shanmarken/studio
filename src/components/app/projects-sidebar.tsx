@@ -50,7 +50,7 @@ export function ProjectsSidebar() {
         <SidebarMenu>
             <SidebarMenuItem>
                  <Link href="/projects" className="block w-full">
-                    <SidebarMenuButton tooltip="Projects" isActive={pathname.includes('/projects')}>
+                    <SidebarMenuButton tooltip="Projects" isActive={pathname.startsWith('/projects')}>
                         <FolderKanban />
                         <span>Projects</span>
                     </SidebarMenuButton>
