@@ -103,7 +103,6 @@ export function CalendarView() {
              <div className="w-72">
                  <Calendar
                     mode="single"
-                    selected={currentDate}
                     onSelect={(date) => date && setCurrentDate(date)}
                     className="rounded-md border hidden lg:block"
                 />
