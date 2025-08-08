@@ -307,15 +307,16 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
                                 className={cn("flex flex-col rounded-lg border bg-background transition-all duration-300", isCollapsed ? 'w-16' : 'flex-shrink-0 w-80 md:w-96')}
                             >
                                 <div className={cn("flex-shrink-0 p-4 border-b", isCollapsed ? 'h-full relative' : 'flex items-center gap-2')}>
-                                    <CollapsibleTrigger asChild>
-                                        <Button variant="ghost" size="icon" className={cn("h-6 w-6", isCollapsed && 'absolute top-4 left-1/2 -translate-x-1/2')}>
-                                            <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
-                                        </Button>
-                                    </CollapsibleTrigger>
-                                    
                                     {isCollapsed ? (
                                         <div className="h-full flex flex-col items-center justify-between py-4">
-                                             <div className={cn("w-2 h-2 rounded-full", statusColorMap[status])}></div>
+                                            <div className="flex flex-col items-center">
+                                                <CollapsibleTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                        <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
+                                                    </Button>
+                                                </CollapsibleTrigger>
+                                                <div className={cn("w-2 h-2 rounded-full mt-2", statusColorMap[status])}></div>
+                                             </div>
                                              <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground [writing-mode:vertical-rl] rotate-180">
                                                  {status}
                                              </h2>
@@ -323,6 +324,11 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
                                         </div>
                                     ) : (
                                         <>
+                                            <CollapsibleTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                    <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
+                                                </Button>
+                                            </CollapsibleTrigger>
                                             <div className={cn("w-3 h-3 rounded-full", statusColorMap[status])}></div>
                                             <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
                                                 {status}
