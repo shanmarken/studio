@@ -3,14 +3,16 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can read and write their own user state, which tracks if their account has been seeded with initial data.
-    match /userStates/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    // Users can read the list of users to assign tasks, but can only write to their own user document.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
     }
 
-    // Users can read, write, create, and delete their own projects and all sub-collections (like tasks).
-    match /users/{userId}/{documents=**} {
-      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+    // Users can only read/write their own projects and the tasks within them.
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth.uid == userId;
     }
   }
 }
