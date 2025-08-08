@@ -258,7 +258,7 @@ export function CalendarView() {
                             {dueTasks.length > 0 ? (
                                 <div className="space-y-2">
                                 {dueTasks.map(task => (
-                                    <Link href={`/projects/${task.projectId}`} key={task.id}>
+                                    <Link href="/mytasks" key={task.id}>
                                         <div className="p-2 rounded-md bg-muted/40 hover:bg-muted/80 transition-colors cursor-pointer shadow-sm border">
                                             <p className="font-semibold text-sm">{task.name}</p>
                                             <p className="text-xs text-muted-foreground">{task.projectName}</p>
@@ -335,7 +335,7 @@ export function CalendarView() {
                                         {/* Tasks */}
                                         <div className="absolute inset-0 top-16 p-1 space-y-1">
                                             {(tasksByDay[format(day, 'yyyy-MM-dd')] || []).map(task => (
-                                                <Link href={`/projects/${task.projectId}`} key={task.id}>
+                                                <Link href="/mytasks" key={task.id}>
                                                     <Card className={cn(
                                                         "border-l-4 transition-colors p-2 text-xs cursor-pointer",
                                                         statusColorMap[task.status]
