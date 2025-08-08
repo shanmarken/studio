@@ -287,8 +287,8 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
                     {STATUS_COLUMNS.map(status => {
                         const columnTasks = tasksByStatus[status] || [];
                         return (
-                            <div key={status} className="flex-shrink-0 w-80 md:w-96 flex flex-col p-4 sm:p-6 lg:p-8">
-                                <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                            <div key={status} className="flex-shrink-0 w-80 md:w-96 flex flex-col">
+                                <div className="flex items-center gap-2 flex-shrink-0 border-b p-4">
                                     <div className={`w-3 h-3 rounded-full ${statusColorMap[status]}`}></div>
                                     <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
                                         {status}
@@ -297,7 +297,7 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
                                         {columnTasks.length}
                                     </span>
                                 </div>
-                                <div className="space-y-4 overflow-y-auto flex-1 pr-2 -mr-2">
+                                <div className="space-y-4 overflow-y-auto flex-1 p-4">
                                     {columnTasks.map(task => (
                                     <TaskCard 
                                         key={task.id} 
