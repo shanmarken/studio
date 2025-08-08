@@ -119,9 +119,9 @@ export function CalendarView() {
 
   return (
     <>
-    <div className="flex flex-col h-full bg-muted/40 text-foreground px-4 pb-4 sm:px-6 sm:pb-6">
-         <div className="border-b border-border/50 flex-shrink-0">
-             <div className='flex items-center justify-between gap-4 py-2'>
+    <div className="flex flex-col bg-muted/40 text-foreground">
+         <div className="border-b border-border/50 flex-shrink-0 sticky top-0 bg-muted/40 z-20">
+             <div className='flex items-center justify-between gap-4 py-2 px-4 sm:px-6'>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={() => setCurrentDate(new Date())}>Today</Button>
                     <Button variant="outline" size="icon" onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>
@@ -156,93 +156,95 @@ export function CalendarView() {
                 </div>
              </div>
          </div>
-        <header className="flex items-start justify-between pt-4 flex-shrink-0 gap-8">
-            <Card className="flex-1 h-64 bg-background">
-                <CardHeader>
-                    <CardTitle>Tasks Due: {format(selectedDate, 'MMMM d')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="h-40">
-                        {dueTasks.length > 0 ? (
-                            <div className="space-y-2">
-                            {dueTasks.map(task => (
-                                <Link href={`/projects/${task.projectId}`} key={task.id}>
-                                    <div className="p-2 rounded-md bg-muted/40 hover:bg-muted/80 transition-colors cursor-pointer shadow-sm border">
-                                        <p className="font-semibold text-sm">{task.name}</p>
-                                        <p className="text-xs text-muted-foreground">{task.projectName}</p>
-                                    </div>
-                                </Link>
+        <div className="p-4 sm:px-6 sm:pb-6">
+            <header className="flex items-start justify-between flex-shrink-0 gap-8">
+                <Card className="flex-1 h-64 bg-background">
+                    <CardHeader>
+                        <CardTitle>Tasks Due: {format(selectedDate, 'MMMM d')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-40">
+                            {dueTasks.length > 0 ? (
+                                <div className="space-y-2">
+                                {dueTasks.map(task => (
+                                    <Link href={`/projects/${task.projectId}`} key={task.id}>
+                                        <div className="p-2 rounded-md bg-muted/40 hover:bg-muted/80 transition-colors cursor-pointer shadow-sm border">
+                                            <p className="font-semibold text-sm">{task.name}</p>
+                                            <p className="text-xs text-muted-foreground">{task.projectName}</p>
+                                        </div>
+                                    </Link>
+                                ))}
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                    No tasks due on this date.
+                                </div>
+                            )}
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+                <div className="w-72">
+                    <div className="flex flex-col gap-2">
+                        <Calendar
+                            mode="single"
+                            onSelect={handleDateSelect}
+                            month={currentDate}
+                            onMonthChange={setCurrentDate}
+                            className="rounded-md border bg-background hidden lg:block"
+                        />
+                    </div>
+                </div>
+            </header>
+            <main className="bg-background rounded-lg border border-border/50 mt-4">
+                {loading ? (
+                    <div className="flex h-full w-full items-center justify-center p-8">
+                        <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-[auto,1fr] h-full p-4">
+                        {/* Time slots column */}
+                        <div className="w-20 text-xs text-muted-foreground">
+                            <div className="h-16"></div> {/* Spacer for day headers */}
+                            {timeSlots.map(time => (
+                                <div key={time} className="h-24 flex items-start justify-end pr-2 pt-1 border-t border-border/50">
+                                    <span>{time}</span>
+                                </div>
                             ))}
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                                No tasks due on this date.
-                            </div>
-                        )}
-                    </ScrollArea>
-                </CardContent>
-            </Card>
-             <div className="w-72">
-                <div className="flex flex-col gap-2">
-                     <Calendar
-                        mode="single"
-                        onSelect={handleDateSelect}
-                        month={currentDate}
-                        onMonthChange={setCurrentDate}
-                        className="rounded-md border bg-background hidden lg:block"
-                    />
-                </div>
-             </div>
-        </header>
-        <main className="flex-1 overflow-auto custom-scrollbar bg-background rounded-lg border border-border/50 mt-4 p-4">
-            {loading ? (
-                 <div className="flex h-full w-full items-center justify-center">
-                    <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            ) : (
-                <div className="grid grid-cols-[auto,1fr] h-full">
-                    {/* Time slots column */}
-                    <div className="w-20 text-xs text-muted-foreground">
-                         <div className="h-16"></div> {/* Spacer for day headers */}
-                        {timeSlots.map(time => (
-                            <div key={time} className="h-24 flex items-start justify-end pr-2 pt-1 border-t border-border/50">
-                                <span>{time}</span>
-                            </div>
-                        ))}
-                    </div>
-                    {/* Days columns */}
-                    <div className="grid grid-cols-7 border-l border-border/50">
-                        {daysInWeek.map(day => (
-                            <div key={day.toString()} className="border-r border-border/50 relative">
-                                <div className="sticky top-0 bg-background/90 backdrop-blur-sm z-10 text-center py-2 border-b border-border/50 h-16 flex flex-col justify-center">
-                                    <div className="text-sm uppercase text-muted-foreground">{format(day, 'EEE')}</div>
-                                    <div className={cn("text-2xl font-bold", isToday(day) && "bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center mx-auto")}>
-                                        {format(day, 'd')}
+                        </div>
+                        {/* Days columns */}
+                        <div className="grid grid-cols-7 border-l border-border/50">
+                            {daysInWeek.map(day => (
+                                <div key={day.toString()} className="border-r border-border/50 relative">
+                                    <div className="sticky top-[65px] bg-background/90 backdrop-blur-sm z-10 text-center py-2 border-b border-border/50 h-16 flex flex-col justify-center">
+                                        <div className="text-sm uppercase text-muted-foreground">{format(day, 'EEE')}</div>
+                                        <div className={cn("text-2xl font-bold", isToday(day) && "bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center mx-auto")}>
+                                            {format(day, 'd')}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="relative h-full">
-                                    {/* Time slot lines */}
-                                    {timeSlots.map(time => (
-                                        <div key={time} className="h-24 border-t border-border/50"></div>
-                                    ))}
-                                    {/* Tasks */}
-                                    <div className="absolute inset-0 top-16 p-1 space-y-1">
-                                        {(tasksByDay[format(day, 'yyyy-MM-dd')] || []).map(task => (
-                                            <Link href={`/projects/${task.projectId}`} key={task.id}>
-                                                <Card className="bg-primary/10 border-l-4 border-primary hover:bg-primary/20 transition-colors p-2 text-xs cursor-pointer">
-                                                    <p className="font-semibold truncate">{task.name}</p>
-                                                    <p className="text-muted-foreground truncate">{task.projectName}</p>
-                                                </Card>
-                                            </Link>
+                                    <div className="relative h-full">
+                                        {/* Time slot lines */}
+                                        {timeSlots.map(time => (
+                                            <div key={time} className="h-24 border-t border-border/50"></div>
                                         ))}
+                                        {/* Tasks */}
+                                        <div className="absolute inset-0 top-16 p-1 space-y-1">
+                                            {(tasksByDay[format(day, 'yyyy-MM-dd')] || []).map(task => (
+                                                <Link href={`/projects/${task.projectId}`} key={task.id}>
+                                                    <Card className="bg-primary/10 border-l-4 border-primary hover:bg-primary/20 transition-colors p-2 text-xs cursor-pointer">
+                                                        <p className="font-semibold truncate">{task.name}</p>
+                                                        <p className="text-muted-foreground truncate">{task.projectName}</p>
+                                                    </Card>
+                                                </Link>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
-        </main>
+                )}
+            </main>
+        </div>
     </div>
     <TaskDialog
         isOpen={isTaskDialogOpen}
