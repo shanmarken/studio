@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, collectionGroup, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task, Status } from '@/lib/types';
@@ -63,8 +63,8 @@ export function MyTasksClient() {
             const projectRef = taskDoc.ref.parent.parent;
             if (!projectRef) return null;
 
-            const projectSnap = await getDocs(projectRef);
-            const projectName = projectSnap.exists() ? projectSnap.data().name : 'Unknown Project';
+            const projectSnap = await getDoc(projectRef);
+            const projectName = projectSnap.exists() ? projectSnap.data()?.name : 'Unknown Project';
             
             return {
               ...(taskData as Task),
@@ -272,7 +272,7 @@ export function MyTasksClient() {
 
 
   return (
-    <div className="flex flex-col h-full overflow-x-auto">
+    <div className="flex flex-col h-full overflow-hidden">
         <header className="flex-shrink-0 bg-background/90 backdrop-blur-sm border-b">
             <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
                 <h1 className="text-2xl font-bold">My Tasks</h1>
@@ -293,14 +293,14 @@ export function MyTasksClient() {
                 </div>
             </div>
         </header>
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 overflow-x-auto">
           <main className="flex-1 bg-muted/40 py-4 sm:py-6 lg:py-8">
               {loading ? (
                   <div className="flex h-full items-center justify-center">
                       <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                   </div>
               ) : (
-                  <div className="px-4 sm:px-6 lg:px-8">
+                  <div className="px-4 sm:px-6 lg:px-8 h-full">
                     <div className="flex gap-8 h-full">
                         {STATUS_COLUMNS.map(status => {
                             const columnTasks = tasksByStatus[status] || [];
@@ -315,7 +315,7 @@ export function MyTasksClient() {
                                             {columnTasks.length}
                                         </span>
                                     </div>
-                                    <div className="space-y-4 overflow-y-auto flex-1">
+                                    <div className="space-y-4 overflow-y-auto flex-1 pr-2 -mr-2">
                                         {columnTasks.map(task => (
                                         <TaskCard 
                                             key={task.id} 
@@ -372,4 +372,5 @@ export function MyTasksClient() {
         />
     </div>
   );
-}
+
+    
