@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { collection, query, getDocs, collectionGroup, getDoc, onSnapshot, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
-import { Task } from '@/lib/types';
+import { Task, Status } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoaderCircle, ChevronLeft, ChevronRight, Search, Plus, Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
@@ -24,6 +24,13 @@ interface TaskWithProject extends Task {
   projectName: string;
   projectId: string;
 }
+
+const statusColorMap: Record<Status, string> = {
+    'To Do': 'bg-gray-500/10 border-gray-500/40 hover:bg-gray-500/20',
+    'In Progress': 'bg-blue-500/10 border-blue-500/40 hover:bg-blue-500/20',
+    'Completed': 'bg-green-500/10 border-green-500/40 hover:bg-green-500/20',
+    'Blocked': 'bg-red-500/10 border-red-500/40 hover:bg-red-500/20',
+  };
 
 export function CalendarView() {
   const { user } = useAuth();
@@ -329,8 +336,14 @@ export function CalendarView() {
                                         <div className="absolute inset-0 top-16 p-1 space-y-1">
                                             {(tasksByDay[format(day, 'yyyy-MM-dd')] || []).map(task => (
                                                 <Link href={`/projects/${task.projectId}`} key={task.id}>
-                                                    <Card className="bg-primary/10 border-l-4 border-primary hover:bg-primary/20 transition-colors p-2 text-xs cursor-pointer">
-                                                        <p className="font-semibold truncate">{task.name}</p>
+                                                    <Card className={cn(
+                                                        "border-l-4 transition-colors p-2 text-xs cursor-pointer",
+                                                        statusColorMap[task.status]
+                                                        )}>
+                                                        <div className='flex justify-between items-center'>
+                                                            <p className="font-semibold truncate">{task.name}</p>
+                                                            <Badge variant="outline" className='text-xs'>{task.status}</Badge>
+                                                        </div>
                                                         <p className="text-muted-foreground truncate">{task.projectName}</p>
                                                     </Card>
                                                 </Link>
