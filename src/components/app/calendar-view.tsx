@@ -119,15 +119,15 @@ export function CalendarView() {
 
   return (
     <>
-    <div className="flex flex-col h-full bg-muted/40 text-foreground p-4 sm:px-6 sm:pb-6">
+    <div className="flex flex-col h-full bg-muted/40 text-foreground px-4 pb-4 sm:px-6 sm:pb-6">
          <div className="border-b border-border/50 flex-shrink-0">
              <div className='flex items-center justify-between gap-4 py-2'>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={() => setCurrentDate(new Date())}>Today</Button>
-                    <Button variant="outline" onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>
+                    <Button variant="outline" size="icon" onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
-                     <Button variant="outline" onClick={() => setCurrentDate(addWeeks(currentDate, 1))}>
+                     <Button variant="outline" size="icon" onClick={() => setCurrentDate(addWeeks(currentDate, 1))}>
                         <ChevronRight className="h-4 w-4" />
                     </Button>
                     <h2 className="text-xl font-semibold">{format(startOfCurrentWeek, 'MMMM yyyy')}</h2>
