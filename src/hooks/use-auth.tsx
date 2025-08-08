@@ -39,7 +39,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const userRef = doc(db, 'users', authUser.uid);
     const unsubscribe = onSnapshot(userRef, (docSnap) => {
-        let userWithRole: User = { ...authUser };
+        const userWithRole: User = { ...authUser, role: undefined };
+
         if (docSnap.exists()) {
             const firestoreUser = docSnap.data();
             userWithRole.role = firestoreUser.role;
@@ -56,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("Error fetching user role:", error);
         
         // Even on error, check if the user is the special admin
-        let userWithError: User = { ...authUser };
+        const userWithError: User = { ...authUser, role: undefined };
         if (authUser.email === 'info.globalpearlventures@gmail.com') {
             userWithError.role = 'admin';
         }

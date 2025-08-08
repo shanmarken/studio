@@ -63,16 +63,19 @@ export default function SignupPage() {
             await updateProfile(user, { displayName: values.fullName });
 
             let role = 'developer';
+            
+            // Check if this is the first user
+            const usersQuery = query(collection(db, 'users'), limit(2));
+            const usersSnapshot = await getDocs(usersQuery);
+
+            // If there's 0 or 1 user document (this new one), they become admin.
+            if (usersSnapshot.size <= 1) {
+                role = 'admin';
+            }
+
+            // Always set superadmin role for the specific email
             if (values.email.toLowerCase() === 'info.globalpearlventures@gmail.com') {
                 role = 'admin';
-            } else {
-                // Check if this is the first user
-                const usersQuery = query(collection(db, 'users'), limit(1));
-                const usersSnapshot = await getDocs(usersQuery);
-                const isFirstUser = usersSnapshot.empty;
-                if (isFirstUser) {
-                    role = 'admin';
-                }
             }
             
             // Create user document in Firestore
