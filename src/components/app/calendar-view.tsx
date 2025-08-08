@@ -220,7 +220,7 @@ export function CalendarView() {
   return (
     <>
     <div className="flex flex-col flex-1 h-full">
-         <div className="border-b border-border/50 flex-shrink-0 bg-secondary z-10">
+         <div className="border-b border-border/50 flex-shrink-0 bg-background/90 backdrop-blur-sm z-10">
              <div className='flex items-center justify-between gap-4 p-2 sm:px-6'>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={() => handleDateSelect(new Date())}>Today</Button>
@@ -386,6 +386,8 @@ export function CalendarView() {
     </>
   );
 }
+
+    
 
     
 
