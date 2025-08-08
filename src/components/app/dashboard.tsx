@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Task } from '@/lib/types';
+import { useState, useEffect } from 'react';
+import { Task, Status } from '@/lib/types';
 import { PHASES } from '@/lib/constants';
 import { PhaseColumn } from './phase-column';
 import { Header } from './header';
@@ -15,7 +15,10 @@ import { PromoteTaskDialog } from './promote-task-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { LoaderCircle } from 'lucide-react';
+import { ChevronsRight, LoaderCircle } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
 
 interface DashboardProps {
   projectId: string;
@@ -34,6 +37,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [isPromoteDialogOpen, setIsPromoteDialogOpen] = useState(false);
   const [taskToPromote, setTaskToPromote] = useState<Task | null>(null);
   const { toast } = useToast();
+  const [collapsedColumns, setCollapsedColumns] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!user || !projectId) return;
@@ -243,6 +247,11 @@ export default function Dashboard({ projectId }: DashboardProps) {
     });
   };
 
+  const toggleColumnCollapse = (phase: string) => {
+    setCollapsedColumns(prev => ({ ...prev, [phase]: !prev[phase] }));
+  };
+
+
   if (loading) {
      return (
        <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
@@ -258,22 +267,67 @@ export default function Dashboard({ projectId }: DashboardProps) {
     <div className="flex flex-col h-full">
       <Header onAddTask={handleAddTask} onExport={handleExport} />
 
-      <main className="flex-1 overflow-x-auto">
+      <main className="flex-1 overflow-x-auto custom-scrollbar">
         <div className="p-4 sm:p-6 lg:p-8 h-full">
-          <div className="flex gap-8 h-full">
-            {PHASES.map((phase) => (
-              <PhaseColumn
-                key={phase}
-                phase={phase}
-                tasks={tasks.filter((task) => task.phase === phase)}
-                onEditTask={handleEditTask}
-                onSuggestUpdate={handleSuggestUpdate}
-                onDeleteTask={handleDeleteRequest}
-                onPromoteTask={handlePromoteRequest}
-                onTaskCompleteToggle={handleTaskCompleteToggle}
-                onSubTaskToggle={handleSubTaskToggle}
-              />
-            ))}
+          <div className="flex gap-4 h-full">
+            {PHASES.map((phase) => {
+              const phaseTasks = tasks.filter((task) => task.phase === phase);
+              const isCollapsed = collapsedColumns[phase];
+              return (
+                <Collapsible
+                    key={phase}
+                    open={!isCollapsed}
+                    onOpenChange={() => toggleColumnCollapse(phase)}
+                    className={cn("flex flex-col rounded-lg border bg-background transition-all duration-300", isCollapsed ? 'w-16' : 'flex-shrink-0 w-80 md:w-96')}
+                >
+                    <div className={cn("flex-shrink-0 p-4 border-b", isCollapsed ? 'h-full relative' : 'flex items-center gap-2')}>
+                        {isCollapsed ? (
+                            <div className="h-full flex flex-col items-center justify-between py-4">
+                                <div className="flex flex-col items-center">
+                                    <CollapsibleTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                                            <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
+                                        </Button>
+                                    </CollapsibleTrigger>
+                                </div>
+                                 <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground [writing-mode:vertical-rl] rotate-180">
+                                     {phase}
+                                 </h2>
+                                 <div className="text-sm font-bold">{phaseTasks.length}</div>
+                            </div>
+                        ) : (
+                            <>
+                                <CollapsibleTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                                        <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
+                                    </Button>
+                                </CollapsibleTrigger>
+                                <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+                                  {phase}
+                                  <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                                    {phaseTasks.length}
+                                  </span>
+                                </h2>
+                            </>
+                        )}
+                    </div>
+                    <CollapsibleContent asChild>
+                      <div className="space-y-4 overflow-y-auto flex-1 p-4">
+                        <PhaseColumn
+                          phase={phase}
+                          tasks={phaseTasks}
+                          onEditTask={handleEditTask}
+                          onSuggestUpdate={handleSuggestUpdate}
+                          onDeleteTask={handleDeleteRequest}
+                          onPromoteTask={handlePromoteRequest}
+                          onTaskCompleteToggle={handleTaskCompleteToggle}
+                          onSubTaskToggle={handleSubTaskToggle}
+                        />
+                      </div>
+                    </CollapsibleContent>
+                </Collapsible>
+              )
+            })}
           </div>
         </div>
       </main>

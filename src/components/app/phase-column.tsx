@@ -17,29 +17,25 @@ type PhaseColumnProps = {
 
 export function PhaseColumn({ phase, tasks, onEditTask, onSuggestUpdate, onDeleteTask, onPromoteTask, onTaskCompleteToggle, onSubTaskToggle }: PhaseColumnProps) {
   return (
-    <div className="flex-shrink-0 w-80 md:w-96">
-      <div className="sticky top-0 bg-background/80 backdrop-blur-sm z-10 p-4 -mx-4 flex items-center justify-center">
-        <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
-          {phase}
-          <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-            {tasks.length}
-          </span>
-        </h2>
-      </div>
-      <div className="h-full">
-        {tasks.map((task) => (
-          <TaskCard 
-            key={task.id} 
-            task={task} 
-            onEdit={onEditTask} 
-            onSuggest={onSuggestUpdate}
-            onDelete={onDeleteTask}
-            onPromote={onPromoteTask}
-            onCompleteToggle={onTaskCompleteToggle}
-            onSubTaskToggle={onSubTaskToggle}
-          />
-        ))}
-      </div>
+    <div className="h-full">
+        {tasks.length > 0 ? (
+            tasks.map((task) => (
+            <TaskCard 
+                key={task.id} 
+                task={task} 
+                onEdit={onEditTask} 
+                onSuggest={onSuggestUpdate}
+                onDelete={onDeleteTask}
+                onPromote={onPromoteTask}
+                onCompleteToggle={onTaskCompleteToggle}
+                onSubTaskToggle={onSubTaskToggle}
+            />
+            ))
+        ) : (
+            <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                No tasks here.
+            </div>
+        )}
     </div>
   );
 }
