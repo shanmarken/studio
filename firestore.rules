@@ -3,23 +3,35 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Default deny all
-    match /{document=**} {
-      allow read, write: if false;
+    // Helper function to check if the user is an admin
+    function isAdmin(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role == 'admin';
     }
 
-    // Allow users to read and write their own user document
+    // Rules for the 'users' collection
     match /users/{userId} {
-      allow read, update: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null;
-      // Allow logged-in users to list all users (for assigning tasks)
-      allow list: if request.auth != null;
+      // Any authenticated user can read their own user document.
+      // Admins can read any user document.
+      allow read: if request.auth.uid != null && (request.auth.uid == userId || isAdmin(request.auth.uid));
+      
+      // An authenticated user can update their own document (e.g., displayName).
+      // An admin can update any user document.
+      allow update: if request.auth.uid != null && (request.auth.uid == userId || isAdmin(request.auth.uid));
+
+      // Only admins can create or delete users through this rule.
+      // (Creation is typically handled by Firebase Auth triggers or signup logic)
+      allow create, delete: if request.auth.uid != null && isAdmin(request.auth.uid);
     }
 
-    // Allow authenticated users to manage projects and all sub-collections (e.g., tasks)
+    // Rules for 'projects' and their subcollections
     match /projects/{projectId}/{document=**} {
-      allow read, write: if request.auth != null;
+      // Allow any authenticated user to read and write to projects and their sub-collections (tasks, etc.)
+      allow read, write: if request.auth.uid != null;
+    }
+
+    // Allow collection group queries for 'tasks' for any authenticated user
+    match /{path=**}/tasks/{taskId} {
+      allow read: if request.auth.uid != null;
     }
   }
 }
