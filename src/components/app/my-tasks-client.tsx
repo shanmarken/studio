@@ -61,6 +61,7 @@ export function MyTasksClient() {
   
         if (projects.length === 0) {
           setTasks([]);
+          setLoading(false);
           return;
         }
   
@@ -291,8 +292,8 @@ export function MyTasksClient() {
   return (
     <>
         <header className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b">
-            <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:p-8">
-                <h1 className="text-2xl font-bold">My Tasks</h1>
+            <div className="flex items-center h-16 px-4 sm:px-6 lg:p-8">
+                <h1 className="text-2xl font-bold flex-1">My Tasks</h1>
                 <div className="flex items-center gap-2">
                     <Button variant="outline">
                         <Filter className="mr-2 h-4 w-4" />
@@ -384,3 +385,5 @@ export function MyTasksClient() {
     </>
   );
 }
+
+    
