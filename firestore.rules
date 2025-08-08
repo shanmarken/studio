@@ -2,17 +2,27 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read;
-      allow create, update, delete: if request.auth.uid == userId;
+
+    // isSuperAdmin function checks if the requesting user is the super admin.
+    function isSuperAdmin() {
+      return request.auth.token.email == 'info.globalpearlventures@gmail.com';
     }
 
-    match /projects/{projectId} {
-      allow read, create, update, delete: if request.auth != null;
+    // Grant super admin full access to everything.
+    match /{path=**} {
+      allow read, write: if isSuperAdmin();
+    }
 
-      match /tasks/{taskId} {
-        allow read, create, update, delete: if request.auth != null;
-      }
+    // Rules for non-admin users.
+    // Allow collaboration on projects for any authenticated user.
+    match /projects/{projectId}/{document=**} {
+      allow read, write: if request.auth != null && !isSuperAdmin();
+    }
+
+    // Users can read other user profiles (for assigning tasks) but only write to their own.
+    match /users/{userId} {
+      allow read: if request.auth != null && !isSuperAdmin();
+      allow write: if request.auth.uid == userId && !isSuperAdmin();
     }
   }
 }
