@@ -260,14 +260,21 @@ export function CalendarView() {
                                         "sticky top-[65px] bg-background/90 backdrop-blur-sm z-10 py-2 border-b border-border/50 h-16 flex flex-col", 
                                         viewMode === 'week' ? 'text-center justify-center' : 'justify-center px-4'
                                     )}>
-                                        <div className="text-sm uppercase text-muted-foreground">{format(day, 'EEE')}</div>
-                                        <div className={cn(
-                                            "text-2xl font-bold", 
-                                            isToday(day) && "bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center",
-                                            viewMode === 'week' && isToday(day) && "mx-auto"
-                                        )}>
-                                            {format(day, 'd')}
-                                        </div>
+                                        {viewMode === 'week' ? (
+                                            <>
+                                                <div className="text-sm uppercase text-muted-foreground">{format(day, 'EEE')}</div>
+                                                <div className={cn(
+                                                    "text-2xl font-bold", 
+                                                    isToday(day) && "bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center mx-auto"
+                                                )}>
+                                                    {format(day, 'd')}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className={cn("text-xl font-bold", isToday(day) && "text-primary")}>
+                                                {format(day, 'EEEE, MMMM d')}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="relative h-full">
                                         {/* Time slot lines */}
