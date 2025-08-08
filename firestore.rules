@@ -1,28 +1,31 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // isSuperAdmin function checks if the requesting user is the super admin.
-    function isSuperAdmin() {
-      return request.auth.token.email == 'info.globalpearlventures@gmail.com';
-    }
-
-    // Grant super admin full access to everything.
-    match /{path=**} {
-      allow read, write: if isSuperAdmin();
-    }
-
-    // Rules for non-admin users.
-    // Allow collaboration on projects for any authenticated user.
-    match /projects/{projectId}/{document=**} {
-      allow read, write: if request.auth != null && !isSuperAdmin();
-    }
-
-    // Users can read other user profiles (for assigning tasks) but only write to their own.
+    
+    // Allow users to manage their own user document
     match /users/{userId} {
-      allow read: if request.auth != null && !isSuperAdmin();
-      allow write: if request.auth.uid == userId && !isSuperAdmin();
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Projects can be read by any authenticated user.
+    // Creation, update, and deletion are restricted to the project owner.
+    match /projects/{projectId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      
+      // Allow authenticated users to read and write tasks within a project.
+      match /tasks/{taskId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+
+    // This rule is necessary for the "My Tasks" page, which needs to query 
+    // the 'tasks' collection group across all projects.
+    match /{path=**}/tasks/{taskId} {
+      allow read: if request.auth != null;
     }
   }
 }
