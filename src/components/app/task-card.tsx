@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { UserAvatar } from './user-avatar';
 import { Progress } from '../ui/progress';
 import { Button } from '../ui/button';
-import { BrainCircuit, Edit, Trash2, ArrowRightCircle, ChevronDown, Folder, Calendar } from 'lucide-react';
+import { BrainCircuit, Edit, Trash2, ArrowRightCircle, Folder, Calendar } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
@@ -61,10 +61,10 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     className="mt-1"
                     disabled={hasSubtasks}
                     />
-                    <CollapsibleTrigger className="flex-1 min-w-0 text-left">
-                        <CardTitle className="text-base font-semibold tracking-normal">
-                          <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer", hasSubtasks && "cursor-default")}>{task.name}</label>
-                        </CardTitle>
+                    <CollapsibleTrigger asChild>
+                      <div className="flex-1 text-left min-w-0">
+                        <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer font-semibold", hasSubtasks && "cursor-default")}>{task.name}</label>
+                      </div>
                     </CollapsibleTrigger>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -79,6 +79,16 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
             <div className="pl-8 space-y-4">
                 <p className="line-clamp-2 text-sm text-muted-foreground">{task.description}</p>
                 
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <UserAvatar name={task.assignedTo} />
+                        <span>{task.assignedTo}</span>
+                    </div>
+                    <Badge variant="outline" className={cn(statusColorMap[task.status])}>
+                        {task.status}
+                    </Badge>
+                </div>
+
                 {task.projectName && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Folder className="h-4 w-4" />
@@ -112,18 +122,6 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                 <div className="flex items-center gap-2">
                     <Progress value={task.percentComplete} className="h-2" />
                     <span className="text-xs font-mono">{task.percentComplete}%</span>
-                </div>
-
-                <Separator/>
-
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <UserAvatar name={task.assignedTo} />
-                        <span>{task.assignedTo}</span>
-                    </div>
-                    <Badge variant="outline" className={cn(statusColorMap[task.status])}>
-                        {task.status}
-                    </Badge>
                 </div>
 
                 <Separator/>
