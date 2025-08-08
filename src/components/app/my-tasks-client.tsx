@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task, Status } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoaderCircle, Filter, Search } from 'lucide-react';
+import { LoaderCircle, Filter, Search, ChevronsRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -17,6 +17,8 @@ import { PromoteTaskDialog } from './promote-task-dialog';
 import { SuggestUpdateDialog } from './suggest-update-dialog';
 import { TaskDialog } from './task-dialog';
 import { TaskCard } from './task-card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 
 const STATUS_COLUMNS: Status[] = ['To Do', 'In Progress', 'Completed', 'Blocked'];
@@ -35,6 +37,12 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<TaskWithProject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [collapsedColumns, setCollapsedColumns] = useState<Record<Status, boolean>>({
+    'To Do': false,
+    'In Progress': false,
+    Completed: false,
+    Blocked: false,
+  });
 
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
@@ -273,6 +281,10 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
     });
   };
 
+  const toggleColumnCollapse = (status: Status) => {
+    setCollapsedColumns(prev => ({ ...prev, [status]: !prev[status] }));
+  };
+
 
   return (
     <div className="flex flex-col flex-1 bg-muted/40 h-full">
@@ -286,37 +298,54 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
                 <div className="flex h-full gap-4">
                     {STATUS_COLUMNS.map(status => {
                         const columnTasks = tasksByStatus[status] || [];
+                        const isCollapsed = collapsedColumns[status];
                         return (
-                            <div key={status} className="flex-shrink-0 w-80 md:w-96 flex flex-col rounded-lg border bg-background">
+                            <Collapsible
+                                key={status}
+                                open={!isCollapsed}
+                                onOpenChange={() => toggleColumnCollapse(status)}
+                                className={cn("flex flex-col rounded-lg border bg-background transition-all duration-300", isCollapsed ? 'w-16' : 'flex-shrink-0 w-80 md:w-96')}
+                            >
                                 <div className="flex items-center gap-2 flex-shrink-0 p-4 border-b">
-                                    <div className={`w-3 h-3 rounded-full ${statusColorMap[status]}`}></div>
-                                    <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
-                                        {status}
-                                    </h2>
-                                    <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                                        {columnTasks.length}
-                                    </span>
-                                </div>
-                                <div className="space-y-4 overflow-y-auto flex-1 p-4">
-                                    {columnTasks.map(task => (
-                                    <TaskCard 
-                                        key={task.id} 
-                                        task={task} 
-                                        onEdit={handleEditTask}
-                                        onSuggest={handleSuggestUpdate}
-                                        onDelete={handleDeleteRequest}
-                                        onPromote={handlePromoteRequest}
-                                        onCompleteToggle={handleTaskCompleteToggle}
-                                        onSubTaskToggle={handleSubTaskToggle}
-                                    />
-                                    ))}
-                                    {columnTasks.length === 0 && (
-                                        <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
-                                            No tasks here.
-                                        </div>
+                                    <CollapsibleTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                                            <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed && "rotate-90")} />
+                                        </Button>
+                                    </CollapsibleTrigger>
+                                    <div className={cn("w-3 h-3 rounded-full", statusColorMap[status], isCollapsed && 'mr-auto')}></div>
+                                    {!isCollapsed && (
+                                        <>
+                                            <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
+                                                {status}
+                                            </h2>
+                                            <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                                                {columnTasks.length}
+                                            </span>
+                                        </>
                                     )}
                                 </div>
-                            </div>
+                                <CollapsibleContent asChild>
+                                    <div className="space-y-4 overflow-y-auto flex-1 p-4">
+                                        {columnTasks.map(task => (
+                                        <TaskCard 
+                                            key={task.id} 
+                                            task={task} 
+                                            onEdit={handleEditTask}
+                                            onSuggest={handleSuggestUpdate}
+                                            onDelete={handleDeleteRequest}
+                                            onPromote={handlePromoteRequest}
+                                            onCompleteToggle={handleTaskCompleteToggle}
+                                            onSubTaskToggle={handleSubTaskToggle}
+                                        />
+                                        ))}
+                                        {columnTasks.length === 0 && (
+                                            <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                                                No tasks here.
+                                            </div>
+                                        )}
+                                    </div>
+                                </CollapsibleContent>
+                            </Collapsible>
                         )
                     })}
                 </div>
