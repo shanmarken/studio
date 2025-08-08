@@ -63,12 +63,18 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     className="mt-1"
                     disabled={hasSubtasks}
                     />
-                    <div className="flex-1 flex items-center gap-2 min-w-0">
+                    <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
                         <CollapsibleTrigger asChild>
                             <div className="flex-1 text-left min-w-0">
                                 <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer font-semibold", hasSubtasks && "cursor-default")}>{task.name}</label>
                             </div>
                         </CollapsibleTrigger>
+                         <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); onEdit(task, 'comments')}} className="h-6 w-6 shrink-0 text-muted-foreground relative">
+                            <MessageSquare className="size-4" />
+                            {commentCount > 0 && (
+                                <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
+                            )}
+                        </Button>
                     </div>
                 </div>
            ) : (
@@ -123,7 +129,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     </Badge>
                 </div>
 
-                {task.projectName ? (
+                {task.projectName && (
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Folder className="h-4 w-4" />
@@ -134,13 +140,6 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                       <span>{format(task.endDate, 'MMM d')}</span>
                     </div>
                   </div>
-                ) : (
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                            <Calendar className="h-3.5 w-3.5" />
-                            <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
-                        </div>
-                    </div>
                 )}
                 
                 {hasSubtasks && (
@@ -170,6 +169,15 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     <Progress value={task.percentComplete} className="h-2" />
                     <span className="text-xs font-mono">{task.percentComplete}%</span>
                 </div>
+                
+                {!task.projectName && (
+                    <div className="flex items-center justify-end text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5" />
+                            <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
+                        </div>
+                    </div>
+                )}
 
                 <Separator/>
 
