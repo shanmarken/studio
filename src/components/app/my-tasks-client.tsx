@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -17,6 +16,7 @@ import { DeleteTaskDialog } from './delete-task-dialog';
 import { PromoteTaskDialog } from './promote-task-dialog';
 import { SuggestUpdateDialog } from './suggest-update-dialog';
 import { TaskDialog } from './task-dialog';
+import { TaskCard } from './task-card';
 
 
 const STATUS_COLUMNS: Status[] = ['To Do', 'In Progress', 'Completed', 'Blocked'];
@@ -292,7 +292,7 @@ export function MyTasksClient() {
   return (
     <div className="flex flex-col h-full bg-background">
         <header className="flex-shrink-0 border-b">
-            <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8 w-full">
                 <h1 className="text-2xl font-bold">My Tasks</h1>
                 <div className="flex items-center gap-2">
                     <Button variant="outline">
@@ -322,8 +322,8 @@ export function MyTasksClient() {
                         {STATUS_COLUMNS.map(status => {
                             const columnTasks = tasksByStatus[status] || [];
                             return (
-                                <div key={status} className="flex-shrink-0 w-80 md:w-96">
-                                    <div className="flex items-center gap-2 mb-4">
+                                <div key={status} className="flex-shrink-0 w-80 md:w-96 flex flex-col">
+                                    <div className="flex items-center gap-2 mb-4 flex-shrink-0">
                                         <div className={`w-3 h-3 rounded-full ${statusColorMap[status]}`}></div>
                                         <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
                                             {status}
@@ -332,22 +332,26 @@ export function MyTasksClient() {
                                             {columnTasks.length}
                                         </span>
                                     </div>
-                                    <div className="h-full space-y-4">
-                                        {columnTasks.map(task => (
-                                        <Card key={task.id} className="bg-background shadow-sm border p-4">
-                                                <p className="text-sm font-medium">{task.name}</p>
-                                                <p className="text-xs text-muted-foreground mt-1">In project: <Link href={`/projects/${task.projectId}`} className="text-primary hover:underline">{task.projectName}</Link></p>
-                                                <div className="mt-2 flex items-center gap-2">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${task.priority === 'High' ? 'bg-red-100 text-red-800' : task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{task.priority}</span>
-                                                    <span className="text-xs text-muted-foreground">Due: {task.endDate.toLocaleDateString()}</span>
+                                    <div className="flex-1 overflow-y-auto pr-2">
+                                        <div className="space-y-4">
+                                            {columnTasks.map(task => (
+                                            <TaskCard 
+                                                key={task.id} 
+                                                task={task} 
+                                                onEdit={handleEditTask}
+                                                onSuggest={handleSuggestUpdate}
+                                                onDelete={handleDeleteRequest}
+                                                onPromote={handlePromoteRequest}
+                                                onCompleteToggle={handleTaskCompleteToggle}
+                                                onSubTaskToggle={handleSubTaskToggle}
+                                            />
+                                            ))}
+                                            {columnTasks.length === 0 && (
+                                                <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                                                    No tasks here.
                                                 </div>
-                                        </Card>
-                                        ))}
-                                        {columnTasks.length === 0 && (
-                                            <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
-                                                No tasks here.
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )
@@ -386,4 +390,5 @@ export function MyTasksClient() {
         />
     </div>
   );
-}
+
+    
