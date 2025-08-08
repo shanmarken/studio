@@ -70,12 +70,20 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                                 <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer font-semibold", hasSubtasks && "cursor-default")}>{task.name}</label>
                             </div>
                         </CollapsibleTrigger>
-                         <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); onEdit(task, 'comments')}} className="h-6 w-6 shrink-0 text-muted-foreground relative">
-                            <MessageSquare className="size-4" />
-                            {commentCount > 0 && (
-                                <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
-                            )}
-                        </Button>
+                        <div className="flex items-center">
+                            <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); onEdit(task, 'attachments')}} className="h-6 w-6 shrink-0 text-muted-foreground relative">
+                                <Paperclip className="size-4" />
+                                {attachmentCount > 0 && (
+                                    <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{attachmentCount}</Badge>
+                                )}
+                            </Button>
+                             <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); onEdit(task, 'comments')}} className="h-6 w-6 shrink-0 text-muted-foreground relative">
+                                <MessageSquare className="size-4" />
+                                {commentCount > 0 && (
+                                    <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </div>
            ) : (
@@ -96,7 +104,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                             </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                            <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); onEdit(task, 'comments')}} className="h-6 w-6 shrink-0 text-muted-foreground relative">
+                             <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); onEdit(task, 'comments')}} className="h-6 w-6 shrink-0 text-muted-foreground relative">
                                 <MessageSquare className="size-4" />
                                 {commentCount > 0 && (
                                     <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
@@ -142,9 +150,9 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                           <span className="font-medium">{task.projectName}</span>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5" />
-                          <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
+                         <div className="flex items-center gap-1.5">
+                            <Calendar className="h-4 w-4" />
+                            <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
                         </div>
                     )}
                     <div className="flex items-center gap-1.5">
@@ -181,15 +189,8 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     <span className="text-xs font-mono">{task.percentComplete}%</span>
                 </div>
                 
-                {!task.projectName && (
-                    <div className="flex items-center justify-start text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                            <Calendar className="h-3.5 w-3.5" />
-                            <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
-                        </div>
-                    </div>
-                )}
-                 {attachmentCount > 0 && (
+
+                 {attachmentCount > 0 && !task.projectName && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Paperclip className="h-4 w-4" />
                     <span>{attachmentCount} attachment{attachmentCount > 1 ? 's' : ''}</span>
