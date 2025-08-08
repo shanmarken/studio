@@ -86,9 +86,10 @@ type TaskDialogProps = {
   taskToEdit?: Task | null;
   tasks: Task[];
   defaultTab?: string;
+  projectId?: string; // Add projectId prop
 };
 
-export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, defaultTab = "details" }: TaskDialogProps) {
+export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, defaultTab = "details", projectId }: TaskDialogProps) {
   const { user } = useAuth();
   const [teamMembers, setTeamMembers] = useState<{label: string, value: string}[]>([]);
   const [projects, setProjects] = useState<{label: string, value: string}[]>([]);
@@ -110,6 +111,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
         setTeamMembers(userList);
     };
     const fetchProjects = async () => {
+        if (projectId) return; // Don't fetch projects if one is already provided
         const projectsRef = collection(db, 'projects');
         const projectsSnap = await getDocs(projectsRef);
         const projectList = projectsSnap.docs.map(doc => ({
@@ -123,7 +125,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
         fetchProjects();
         setActiveTab(defaultTab);
     }
-  }, [isOpen, defaultTab]);
+  }, [isOpen, defaultTab, projectId]);
   
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -161,7 +163,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
     if (taskToEdit) {
       form.reset({
         ...taskToEdit,
-        projectId: taskToEdit.projectId || '',
+        projectId: taskToEdit.projectId || projectId || '',
         startDate: new Date(taskToEdit.startDate),
         endDate: new Date(taskToEdit.endDate),
         percentComplete: taskToEdit.percentComplete || 0,
@@ -185,10 +187,10 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
         phase: PHASES[0],
         subTasks: [],
         comments: [],
-        projectId: '',
+        projectId: projectId || '',
       });
     }
-  }, [taskToEdit, form, isOpen, user]);
+  }, [taskToEdit, form, isOpen, user, projectId]);
 
   const handleAddComment = () => {
     if (newComment.trim() && user) {
@@ -243,24 +245,26 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
               </TabsList>
               <TabsContent value="details" className="flex-1 overflow-y-auto pr-2">
                 <div className="grid gap-4 py-4">
-                  <FormField
-                      name="projectId"
-                      control={form.control}
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Project</FormLabel>
-                          <Combobox
-                            options={projects}
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Select project"
-                            searchPlaceholder="Search projects..."
-                            noResultsText="No projects found."
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  {!projectId && (
+                    <FormField
+                        name="projectId"
+                        control={form.control}
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Project</FormLabel>
+                            <Combobox
+                              options={projects}
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Select project"
+                              searchPlaceholder="Search projects..."
+                              noResultsText="No projects found."
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                  )}
                   <FormField name="name" control={form.control} render={({ field }) => (
                     <FormItem>
                       <FormLabel>Task Name</FormLabel>

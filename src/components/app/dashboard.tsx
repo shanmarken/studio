@@ -353,6 +353,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
         taskToEdit={taskToEdit}
         tasks={tasks}
         defaultTab={defaultTaskDialogTab}
+        projectId={projectId}
       />
       
       <SuggestUpdateDialog
