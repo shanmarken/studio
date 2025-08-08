@@ -194,7 +194,7 @@ export function CalendarView() {
                 </div>
              </div>
         </header>
-        <main className="flex-1 overflow-auto custom-scrollbar">
+        <main className="flex-1 overflow-auto custom-scrollbar bg-background rounded-lg border border-border/50 mt-4 p-4">
             {loading ? (
                  <div className="flex h-full w-full items-center justify-center">
                     <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
@@ -214,7 +214,7 @@ export function CalendarView() {
                     <div className="grid grid-cols-7 border-l border-border/50">
                         {daysInWeek.map(day => (
                             <div key={day.toString()} className="border-r border-border/50 relative">
-                                <div className="sticky top-0 bg-muted/90 backdrop-blur-sm z-10 text-center py-2 border-b border-border/50 h-16 flex flex-col justify-center">
+                                <div className="sticky top-0 bg-background/90 backdrop-blur-sm z-10 text-center py-2 border-b border-border/50 h-16 flex flex-col justify-center">
                                     <div className="text-sm uppercase text-muted-foreground">{format(day, 'EEE')}</div>
                                     <div className={cn("text-2xl font-bold", isToday(day) && "bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center mx-auto")}>
                                         {format(day, 'd')}
