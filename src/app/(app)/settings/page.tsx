@@ -62,7 +62,7 @@ export default function SettingsPage() {
 
   if (user?.role !== 'admin') {
     return (
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-muted/40">
             <Card>
                 <CardHeader>
                     <CardTitle>Access Denied</CardTitle>
@@ -78,7 +78,7 @@ export default function SettingsPage() {
 
   return (
     <>
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-muted/40">
              <Tabs defaultValue="team" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 max-w-md">
                     <TabsTrigger value="team">Team Management</TabsTrigger>

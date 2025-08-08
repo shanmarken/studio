@@ -1,3 +1,4 @@
+
 'use client';
 
 import Dashboard from "@/components/app/dashboard";
@@ -43,7 +44,7 @@ export default function ProjectPage() {
 
   return (
     <AppLayout>
-        <main className="h-full bg-background flex-1">
+        <main className="h-full bg-muted/40 flex-1">
           <Dashboard projectId={projectId} />
         </main>
     </AppLayout>

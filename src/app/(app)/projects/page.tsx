@@ -279,7 +279,7 @@ export default function ProjectsPage() {
               </div>
             </div>
           </header>
-          <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-muted/40">
             {projects.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {projects.map((project) => {
@@ -323,7 +323,7 @@ export default function ProjectsPage() {
                 </Card>
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center h-full max-w-lg mx-auto text-center rounded-lg border-2 border-dashed p-12">
+                <div className="flex flex-col items-center justify-center h-full max-w-lg mx-auto text-center rounded-lg border-2 border-dashed p-12 bg-background">
                     <ProjectPulseLogo />
                     <h2 className="mt-6 text-xl font-semibold">Welcome to Project Pulse</h2>
                     <p className="mt-2 text-center text-muted-foreground">
