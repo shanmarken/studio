@@ -40,11 +40,11 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
     Low: 'bg-green-500/20 text-green-700 border-green-500/30 dark:text-green-400',
   };
 
-  const statusColorMap = {
-    'To Do': 'bg-gray-500/20 text-gray-700 border-gray-500/30 dark:text-gray-400',
-    'In Progress': 'bg-blue-500/20 text-blue-700 border-blue-500/30 dark:text-blue-400',
-    Completed: 'bg-green-500/20 text-green-700 border-green-500/30 dark:text-green-400',
-    Blocked: 'bg-destructive/20 text-destructive border-destructive/30 dark:text-destructive',
+  const statusColorMap: Record<Task['status'], string> = {
+    'To Do': 'bg-gray-500',
+    'In Progress': 'bg-blue-500',
+    Completed: 'bg-green-500',
+    Blocked: 'bg-red-500',
   };
   
   const hasSubtasks = task.subTasks && task.subTasks.length > 0;
@@ -54,8 +54,8 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <Card className="mb-4 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow duration-300">
         <CardHeader className="p-4">
-            <div className="flex justify-between items-start gap-2">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
+           {isOpen ? (
+                 <div className="flex items-start gap-3 flex-1 min-w-0">
                     <Checkbox
                     id={`task-${task.id}`}
                     checked={task.status === 'Completed'}
@@ -69,20 +69,39 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                                 <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer font-semibold", hasSubtasks && "cursor-default")}>{task.name}</label>
                             </div>
                         </CollapsibleTrigger>
-                         <Button variant="ghost" size="icon" onClick={() => onEdit(task, 'comments')} className="h-6 w-6 shrink-0 text-muted-foreground relative">
-                            <MessageSquare className="size-4" />
-                            {commentCount > 0 && (
-                                <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
-                            )}
-                        </Button>
                     </div>
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                    <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
-                        {task.priority}
-                    </Badge>
-                </div>
-            </div>
+           ) : (
+                <CollapsibleTrigger asChild>
+                    <div className="flex justify-between items-center gap-2 cursor-pointer">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                             <div className="relative flex-shrink-0">
+                                <UserAvatar name={task.assignedTo} />
+                                <span 
+                                    className={cn(
+                                        "absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full border-2 border-background",
+                                        statusColorMap[task.status]
+                                    )}
+                                />
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                                <p className="font-semibold truncate">{task.name}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); onEdit(task, 'comments')}} className="h-6 w-6 shrink-0 text-muted-foreground relative">
+                                <MessageSquare className="size-4" />
+                                {commentCount > 0 && (
+                                    <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
+                                )}
+                            </Button>
+                            <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
+                                {task.priority}
+                            </Badge>
+                        </div>
+                    </div>
+                </CollapsibleTrigger>
+           )}
         </CardHeader>
         <CollapsibleContent>
           <CardContent className="p-4 pt-0">
@@ -94,12 +113,17 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                         <UserAvatar name={task.assignedTo} />
                         <span>{task.assignedTo}</span>
                     </div>
-                    <Badge variant="outline" className={cn(statusColorMap[task.status])}>
+                     <Badge variant="outline" className={cn(
+                        task.status === 'To Do' && 'bg-gray-500/20 text-gray-700 border-gray-500/30 dark:text-gray-400',
+                        task.status === 'In Progress' && 'bg-blue-500/20 text-blue-700 border-blue-500/30 dark:text-blue-400',
+                        task.status === 'Completed' && 'bg-green-500/20 text-green-700 border-green-500/30 dark:text-green-400',
+                        task.status === 'Blocked' && 'bg-destructive/20 text-destructive border-destructive/30 dark:text-destructive'
+                    )}>
                         {task.status}
                     </Badge>
                 </div>
 
-                {task.projectName && (
+                {task.projectName ? (
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Folder className="h-4 w-4" />
@@ -110,6 +134,13 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                       <span>{format(task.endDate, 'MMM d')}</span>
                     </div>
                   </div>
+                ) : (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5" />
+                            <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
+                        </div>
+                    </div>
                 )}
                 
                 {hasSubtasks && (
@@ -139,38 +170,29 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     <Progress value={task.percentComplete} className="h-2" />
                     <span className="text-xs font-mono">{task.percentComplete}%</span>
                 </div>
-                
-                {!task.projectName && (
-                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                            <Calendar className="h-3.5 w-3.5" />
-                            <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
-                        </div>
-                    </div>
-                )}
 
                 <Separator/>
 
                 <div className="flex items-center justify-end gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => onSuggest(task)} className="gap-2">
-                    <BrainCircuit className="size-4" />
-                    Suggest
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => onEdit(task)} className="gap-2">
-                      <Edit className="size-4" />
-                      Edit
-                  </Button>
-                  {task.status === 'Completed' ? (
-                      <Button variant="outline" size="sm" onClick={() => onPromote(task)} className="gap-2">
-                          <ArrowRightCircle className="size-4" />
-                          Promote
-                      </Button>
-                  ) : (
-                      <Button variant="ghost" size="sm" onClick={() => onDelete(task)} className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
-                          <Trash2 className="size-4" />
-                          Delete
-                      </Button>
-                  )}
+                    {task.status === 'Completed' ? (
+                         <Button variant="outline" size="sm" onClick={() => onPromote(task)} className="gap-2">
+                            <ArrowRightCircle className="size-4" />
+                            Promote
+                        </Button>
+                    ) : (
+                        <Button variant="ghost" size="sm" onClick={() => onSuggest(task)} className="gap-2">
+                            <BrainCircuit className="size-4" />
+                            Suggest
+                        </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => onEdit(task)} className="gap-2">
+                        <Edit className="size-4" />
+                        Edit
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => onDelete(task)} className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
+                        <Trash2 className="size-4" />
+                        Delete
+                    </Button>
                 </div>
             </div>
           </CardContent>
