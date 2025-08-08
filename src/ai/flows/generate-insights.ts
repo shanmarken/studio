@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { getAllProjectsWithTasks, ProjectWithTasks } from '@/services/project-service';
 
 const AtRiskProjectSchema = z.object({
@@ -35,7 +35,7 @@ export type GenerateInsightsOutput = z.infer<typeof GenerateInsightsOutputSchema
 
 export async function generateInsights(): Promise<GenerateInsightsOutput> {
   const projects = await getAllProjectsWithTasks();
-  // Filter out projects that have no tasks, as they are not relevant for insights.
+  // We pass all projects to the flow, including those without tasks.
   const activeProjects = projects.filter(p => p.tasks.length > 0);
   return generateInsightsFlow(activeProjects);
 }
