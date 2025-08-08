@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, getDocs, collectionGroup, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task } from '@/lib/types';
@@ -22,13 +22,13 @@ export function MyTasksClient() {
 
   useEffect(() => {
     const fetchTasks = async () => {
-      if (!user || !user.displayName) return;
+      if (!user || !user.uid) return;
 
       setLoading(true);
       try {
         const tasksQuery = query(
           collectionGroup(db, 'tasks'),
-          where('assignedTo', '==', user.displayName)
+          where('assignedToId', '==', user.uid)
         );
 
         const querySnapshot = await getDocs(tasksQuery);
@@ -39,15 +39,15 @@ export function MyTasksClient() {
           const projectRef = taskDoc.ref.parent.parent;
           
           if (projectRef) {
-            const projectSnap = await getDocs(query(collection(db, 'users', user.uid, 'projects'), where('__name__', '==', projectRef.id)));
+            const projectSnap = await getDoc(projectRef);
             
-            if (!projectSnap.empty) {
-                const projectDoc = projectSnap.docs[0];
+            if (projectSnap.exists()) {
+                const projectData = projectSnap.data();
                  myTasks.push({
                     ...taskData,
                     id: taskDoc.id,
-                    projectName: projectDoc.data().name,
-                    projectId: projectDoc.id,
+                    projectName: projectData.name,
+                    projectId: projectSnap.id,
                     startDate: new Date(taskData.startDate),
                     endDate: new Date(taskData.endDate),
                  });
@@ -109,3 +109,4 @@ export function MyTasksClient() {
     </>
   );
 }
+
