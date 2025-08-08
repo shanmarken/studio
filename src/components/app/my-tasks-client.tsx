@@ -43,74 +43,72 @@ export function MyTasksClient() {
   const [taskToPromote, setTaskToPromote] = useState<Task | null>(null);
 
   useEffect(() => {
-    if (!user || !user.uid) return;
-
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
+  
     setLoading(true);
-
+  
     const projectsQuery = query(collection(db, 'projects'));
-
-    const unsubscribeProjects = onSnapshot(projectsQuery, (projectsSnapshot) => {
-        const projects = projectsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
-        
+  
+    const unsubscribe = onSnapshot(projectsQuery, async (projectsSnapshot) => {
+      try {
+        const projects = projectsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name,
+        }));
+  
         if (projects.length === 0) {
-            setTasks([]);
-            setLoading(false);
-            return;
+          setTasks([]);
+          return;
         }
-
-        const taskListeners = projects.map(project => {
-            const tasksQuery = query(
-                collection(db, `projects/${project.id}/tasks`),
-                where('assignedToId', '==', user.uid)
-            );
-            
-            return onSnapshot(tasksQuery, () => {
-                // This is a bit of a trick. We refetch all tasks when any of the listeners fire.
-                // This is simpler than trying to manage all the sub-collections separately.
-                fetchAllTasks();
-            }, (error) => {
-                console.error(`Error fetching tasks for project ${project.id}:`, error);
-            });
+  
+        const allTasksPromises = projects.map(async (project) => {
+          const tasksQuery = query(
+            collection(db, `projects/${project.id}/tasks`),
+            where('assignedToId', '==', user.uid)
+          );
+          const tasksSnapshot = await getDocs(tasksQuery);
+          return tasksSnapshot.docs.map(taskDoc => {
+            const taskData = taskDoc.data();
+            return {
+              ...(taskData as Task),
+              id: taskDoc.id,
+              projectName: project.name,
+              projectId: project.id,
+              startDate: new Date(taskData.startDate),
+              endDate: new Date(taskData.endDate),
+            };
+          });
         });
-
-        const fetchAllTasks = async () => {
-            const allTasks: TaskWithProject[] = [];
-            for (const project of projects) {
-                const tasksQuery = query(
-                    collection(db, `projects/${project.id}/tasks`),
-                    where('assignedToId', '==', user.uid)
-                );
-                const tasksSnapshot = await getDocs(tasksQuery);
-                const projectTasks = tasksSnapshot.docs.map(taskDoc => {
-                    const taskData = taskDoc.data();
-                    return {
-                        ...(taskData as Task),
-                        id: taskDoc.id,
-                        projectName: project.name,
-                        projectId: project.id,
-                        startDate: new Date(taskData.startDate),
-                        endDate: new Date(taskData.endDate),
-                    };
-                });
-                allTasks.push(...projectTasks);
-            }
-            setTasks(allTasks);
-            setLoading(false);
-        };
+  
+        const allTasksArrays = await Promise.all(allTasksPromises);
+        const allTasks = allTasksArrays.flat();
         
-        fetchAllTasks();
-
-        return () => {
-            taskListeners.forEach(unsub => unsub());
-        };
-    }, (error) => {
-        console.error("Error fetching projects:", error);
+        setTasks(allTasks);
+      } catch (error) {
+        console.error("Error fetching tasks:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to load your tasks.'
+        })
+      } finally {
         setLoading(false);
+      }
+    }, (error) => {
+      console.error("Error fetching projects:", error);
+      toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to load projects.'
+      })
+      setLoading(false);
     });
-
-    return () => unsubscribeProjects();
-
-  }, [user]);
+  
+    return () => unsubscribe();
+  }, [user, toast]);
 
 
   const filteredTasks = useMemo(() => {
