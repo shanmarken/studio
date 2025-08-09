@@ -16,7 +16,7 @@ import { PromoteTaskDialog } from './promote-task-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { ChevronsRight, LoaderCircle } from 'lucide-react';
+import { ChevronsRight, LoaderCircle, GitBranch } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
