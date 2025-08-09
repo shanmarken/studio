@@ -45,20 +45,20 @@ const generateInsightsPrompt = ai.definePrompt({
   name: 'generateInsightsPrompt',
   input: { schema: ProjectWithTasks },
   output: { schema: GenerateInsightsOutputSchema },
-  prompt: `You are an expert project management analyst. Your task is to provide a detailed analysis of a software project.
+  prompt: `You are an expert project management analyst. Your task is to provide a detailed analysis of a software project based on a simplified dataset.
   
-  Analyze the following project data, which includes project details and a list of all tasks within the project.
+  Analyze the following project data, which includes the project name and a list of its tasks with only their name, assignee, status, and percent complete.
   
   Project Data:
   {{{json this}}}
   
   Your analysis should include three parts:
   
-  1.  **Overall Summary**: Provide a high-level executive summary of the project. Mention overall percentage complete, identify any cross-project dependencies or common blockers, and comment on the general velocity.
+  1.  **Overall Summary**: Provide a high-level executive summary of the project. Comment on the general velocity based on the distribution of task statuses. Identify any potential bottlenecks if many tasks are in 'Blocked' or 'Testing' state.
   
-  2.  **At-Risk Items**: Identify tasks or epics that are at risk. An item might be at risk if it has a high number of blocked tasks, is significantly behind schedule (many incomplete tasks past their end date), or has low overall progress despite being active for a long time. For each at-risk item, provide its name, and a brief, actionable reason why it's at risk.
+  2.  **At-Risk Items**: Based on the task names and statuses, identify any tasks that seem like they could be at risk. For example, a task named "Finalize API" that is still 'In Progress' might be a risk. Provide its name and a brief, actionable reason why it might be at risk.
   
-  3.  **Team Performance**: Analyze the workload and output of each team member on this project. For each person, calculate the number of completed, in-progress, and blocked tasks. Provide a brief, objective performance summary. Note if a team member is overloaded with in-progress tasks or is frequently blocked.
+  3.  **Team Performance**: Analyze the workload and output of each team member. For each person, calculate the number of completed, in-progress, and blocked tasks. Provide a brief, objective performance summary. Note if a team member seems overloaded with in-progress tasks or is frequently blocked.
   
   Provide a structured, data-driven, and objective report. If there are no tasks, state that analysis cannot be performed.`,
 });
