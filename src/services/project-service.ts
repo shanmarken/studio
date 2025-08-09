@@ -3,6 +3,26 @@ import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { z } from 'zod';
 
+const SubTaskSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  completed: z.boolean(),
+});
+
+const CommentSchema = z.object({
+  id: z.string(),
+  author: z.string(),
+  authorId: z.string(),
+  text: z.string(),
+  createdAt: z.string(), // Keep as string to match what's stored/retrieved
+});
+
+const AttachmentSchema = z.object({
+  name: z.string(),
+  url: z.string(),
+  type: z.string(),
+});
+
 const TaskSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -18,6 +38,10 @@ const TaskSchema = z.object({
   dependencies: z.string().optional(),
   notes: z.string().optional(),
   phase: z.string(),
+  subTasks: z.array(SubTaskSchema).optional(),
+  comments: z.array(CommentSchema).optional(),
+  attachments: z.array(AttachmentSchema).optional(),
+  releaseId: z.string().optional(),
 });
 
 export const ProjectWithTasks = z.object({
@@ -48,11 +72,20 @@ export async function getProjectWithTasks(projectId: string): Promise<ProjectWit
   
   const tasks = tasksSnapshot.docs.map((taskDoc) => {
     const data = taskDoc.data();
+    // Firestore Timestamps need to be converted safely
+    const startDate = data.startDate?.toDate ? data.startDate.toDate().toISOString() : new Date(data.startDate).toISOString();
+    const endDate = data.endDate?.toDate ? data.endDate.toDate().toISOString() : new Date(data.endDate).toISOString();
+    const comments = data.comments?.map((c: any) => ({
+        ...c,
+        createdAt: c.createdAt?.toDate ? c.createdAt.toDate().toISOString() : new Date(c.createdAt).toISOString(),
+    })) || [];
+
     return {
       ...data,
       id: taskDoc.id,
-      startDate: new Date(data.startDate).toISOString(),
-      endDate: new Date(data.endDate).toISOString(),
+      startDate,
+      endDate,
+      comments,
       status: data.status,
     } as z.infer<typeof TaskSchema>;
   });
@@ -83,12 +116,19 @@ export async function getAllProjectsWithTasks(): Promise<ProjectWithTasks[]> {
       
       const tasks = tasksSnapshot.docs.map((taskDoc) => {
         const data = taskDoc.data();
+         // Firestore Timestamps need to be converted safely
+        const startDate = data.startDate?.toDate ? data.startDate.toDate().toISOString() : new Date(data.startDate).toISOString();
+        const endDate = data.endDate?.toDate ? data.endDate.toDate().toISOString() : new Date(data.endDate).toISOString();
+        const comments = data.comments?.map((c: any) => ({
+            ...c,
+            createdAt: c.createdAt?.toDate ? c.createdAt.toDate().toISOString() : new Date(c.createdAt).toISOString(),
+        })) || [];
         return {
           ...data,
           id: taskDoc.id,
-          // Ensure dates are ISO strings for serialization
-          startDate: new Date(data.startDate).toISOString(),
-          endDate: new Date(data.endDate).toISOString(),
+          startDate,
+          endDate,
+          comments,
           status: data.status || 'To Do',
         } as z.infer<typeof TaskSchema>;
       });
