@@ -150,15 +150,14 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                           <span className="font-medium">{task.projectName}</span>
                         </div>
                     ) : (
-                         <div className="flex items-center gap-1.5">
-                            <Calendar className="h-4 w-4" />
-                            <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
-                        </div>
+                        <div/>
                     )}
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="h-4 w-4" />
-                      <span>{format(task.endDate, 'MMM d')}</span>
-                    </div>
+                    {task.projectName && (
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-4 w-4" />
+                        <span>{format(task.endDate, 'MMM d')}</span>
+                      </div>
+                    )}
                 </div>
                 
                 {hasSubtasks && (
@@ -188,14 +187,15 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     <Progress value={task.percentComplete} className="h-2" />
                     <span className="text-xs font-mono">{task.percentComplete}%</span>
                 </div>
-                
 
-                 {attachmentCount > 0 && !task.projectName && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Paperclip className="h-4 w-4" />
-                    <span>{attachmentCount} attachment{attachmentCount > 1 ? 's' : ''}</span>
-                  </div>
-                )}
+                <div className="flex items-center justify-start text-sm text-muted-foreground">
+                    {!task.projectName && (
+                         <div className="flex items-center gap-1.5">
+                            <Calendar className="h-4 w-4" />
+                            <span>{format(task.startDate, 'MMM d')} - {format(task.endDate, 'MMM d')}</span>
+                        </div>
+                    )}
+                </div>
 
 
                 <Separator/>
