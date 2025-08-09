@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { getProjectWithTasks } from '@/services/project-service';
 
 // --- Define a Zod schema for the project input (adapt fields to your real model) ---
-export const ProjectWithTasksSchema = z.object({
+const ProjectWithTasksSchema = z.object({
   id: z.string(),
   name: z.string(),
   // optional description
@@ -18,7 +18,7 @@ export const ProjectWithTasksSchema = z.object({
     // add any other fields you need for the analysis
   })),
 });
-export type ProjectWithTasks = z.infer<typeof ProjectWithTasksSchema>;
+type ProjectWithTasks = z.infer<typeof ProjectWithTasksSchema>;
 
 // --- existing output schemas (unchanged) ---
 const AtRiskProjectSchema = z.object({
