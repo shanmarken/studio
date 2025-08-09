@@ -9,12 +9,12 @@ import { cn } from '@/lib/utils';
 import { UserAvatar } from './user-avatar';
 import { Progress } from '../ui/progress';
 import { Button } from '../ui/button';
-import { BrainCircuit, Edit, Trash2, ArrowRightCircle, Folder, Calendar, MessageSquare, Paperclip, GitBranch } from 'lucide-react';
+import { BrainCircuit, Edit, Trash2, ArrowRightCircle, Folder, Calendar, MessageSquare, Paperclip, GitBranch, GripVertical } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 
 interface TaskWithProject extends Task {
@@ -30,9 +30,10 @@ type TaskCardProps = {
   onPromote: (task: Task) => void;
   onCompleteToggle: (taskId: string, isComplete: boolean) => void;
   onSubTaskToggle: (taskId:string, subTaskId: string, isComplete: boolean) => void;
+  dragHandleProps?: any;
 };
 
-export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompleteToggle, onSubTaskToggle }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompleteToggle, onSubTaskToggle, dragHandleProps }: TaskCardProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const priorityColorMap = {
@@ -54,73 +55,80 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
   const attachmentCount = task.attachments?.length || 0;
   const isDone = task.status === 'Completed' || task.status === 'Testing';
 
+  const handleButtonClick = (e: React.MouseEvent, callback: () => void) => {
+    e.stopPropagation();
+    callback();
+  }
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <Card className="mb-4 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow duration-300">
-        <CardHeader className="p-4">
-           {isOpen ? (
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <Checkbox
-                    id={`task-${task.id}`}
-                    checked={isDone}
-                    onCheckedChange={(checked) => onCompleteToggle(task.id, !!checked)}
-                    className="mt-1"
-                    disabled={hasSubtasks}
-                    />
-                    <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
-                        <CollapsibleTrigger asChild>
-                            <div className="flex-1 text-left min-w-0">
-                                <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer font-semibold", hasSubtasks && "cursor-default")}>{task.name}</label>
-                            </div>
-                        </CollapsibleTrigger>
-                        <div className="flex items-center">
-                            <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); onEdit(task, 'attachments')}} className="h-6 w-6 shrink-0 text-muted-foreground relative">
-                                <Paperclip className="size-4" />
-                                {attachmentCount > 0 && (
-                                    <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{attachmentCount}</Badge>
-                                )}
-                            </Button>
-                             <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); onEdit(task, 'comments')}} className="h-6 w-6 shrink-0 text-muted-foreground relative">
-                                <MessageSquare className="size-4" />
-                                {commentCount > 0 && (
-                                    <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
-                                )}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-           ) : (
-                <CollapsibleTrigger asChild>
-                    <div className="flex justify-between items-center gap-2 cursor-pointer">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className="relative flex-shrink-0">
-                                <UserAvatar name={task.assignedTo} />
-                                <span 
-                                    className={cn(
-                                        "absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full border-2 border-background",
-                                        statusColorMap[task.status]
+        <div {...dragHandleProps}>
+            <CardHeader className="p-4 cursor-grab active:cursor-grabbing">
+            {isOpen ? (
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <Checkbox
+                        id={`task-${task.id}`}
+                        checked={isDone}
+                        onCheckedChange={(checked) => onCompleteToggle(task.id, !!checked)}
+                        className="mt-1"
+                        disabled={hasSubtasks}
+                        />
+                        <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
+                            <CollapsibleTrigger asChild>
+                                <div className="flex-1 text-left min-w-0">
+                                    <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer font-semibold", hasSubtasks && "cursor-default")}>{task.name}</label>
+                                </div>
+                            </CollapsibleTrigger>
+                            <div className="flex items-center">
+                                <Button variant="ghost" size="icon" onClick={(e) => handleButtonClick(e, () => onEdit(task, 'attachments'))} className="h-6 w-6 shrink-0 text-muted-foreground relative">
+                                    <Paperclip className="size-4" />
+                                    {attachmentCount > 0 && (
+                                        <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{attachmentCount}</Badge>
                                     )}
-                                />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={(e) => handleButtonClick(e, () => onEdit(task, 'comments'))} className="h-6 w-6 shrink-0 text-muted-foreground relative">
+                                    <MessageSquare className="size-4" />
+                                    {commentCount > 0 && (
+                                        <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
+                                    )}
+                                </Button>
                             </div>
-                            <div className="flex-1 text-left min-w-0">
-                                <p className="font-semibold truncate">{task.name}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                             <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); onEdit(task, 'comments')}} className="h-6 w-6 shrink-0 text-muted-foreground relative">
-                                <MessageSquare className="size-4" />
-                                {commentCount > 0 && (
-                                    <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
-                                )}
-                            </Button>
-                            <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
-                                {task.priority}
-                            </Badge>
                         </div>
                     </div>
-                </CollapsibleTrigger>
-           )}
-        </CardHeader>
+            ) : (
+                    <CollapsibleTrigger asChild>
+                        <div className="flex justify-between items-center gap-2 cursor-pointer">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className="relative flex-shrink-0">
+                                    <UserAvatar name={task.assignedTo} />
+                                    <span 
+                                        className={cn(
+                                            "absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full border-2 border-background",
+                                            statusColorMap[task.status]
+                                        )}
+                                    />
+                                </div>
+                                <div className="flex-1 text-left min-w-0">
+                                    <p className="font-semibold truncate">{task.name}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <Button variant="ghost" size="icon" onClick={(e) => handleButtonClick(e, () => onEdit(task, 'comments'))} className="h-6 w-6 shrink-0 text-muted-foreground relative">
+                                    <MessageSquare className="size-4" />
+                                    {commentCount > 0 && (
+                                        <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
+                                    )}
+                                </Button>
+                                <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
+                                    {task.priority}
+                                </Badge>
+                            </div>
+                        </div>
+                    </CollapsibleTrigger>
+            )}
+            </CardHeader>
+        </div>
         <CollapsibleContent>
           <CardContent className="p-4 pt-0">
             <div className="pl-8 space-y-4">

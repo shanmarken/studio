@@ -20,6 +20,10 @@ import { TaskDialog } from './task-dialog';
 import { TaskCard } from './task-card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { DroppableColumn } from './dnd/droppable-column';
+import { DraggableTaskCard } from './dnd/draggable-task-card';
 
 
 const STATUS_COLUMNS: Status[] = ['To Do', 'In Progress', 'Testing', 'Completed', 'Blocked'];
@@ -138,12 +142,40 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
     }, {} as Record<Status, TaskWithProject[]>);
   }, [filteredTasks]);
 
-  const statusColorMap: Record<Status, string> = {
-    'To Do': 'bg-gray-500',
-    'In Progress': 'bg-blue-500',
-    'Testing': 'bg-purple-500',
-    Completed: 'bg-green-500',
-    Blocked: 'bg-red-500',
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+        return;
+    }
+
+    const activeTask = tasks.find(t => t.id === active.id);
+    const overColumnStatus = over.id as Status;
+    
+    if (activeTask && activeTask.status !== overColumnStatus) {
+        // Optimistic UI update
+        const updatedTasks = tasks.map(t => t.id === active.id ? { ...t, status: overColumnStatus } : t);
+        setTasks(updatedTasks);
+        
+        // Update Firestore
+        try {
+            const taskRef = doc(db, 'projects', activeTask.projectId, 'tasks', activeTask.id);
+            await updateDoc(taskRef, { status: overColumnStatus });
+            toast({
+                title: 'Task Updated',
+                description: `"${activeTask.name}" moved to ${overColumnStatus}.`
+            });
+        } catch (error) {
+            // Revert UI on error
+            setTasks(tasks);
+            console.error("Error updating task status:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to update task status.'
+            });
+        }
+    }
   };
 
 
@@ -325,75 +357,43 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
                   <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
               </div>
           ) : (
-            <div className="flex h-full gap-4">
-                {STATUS_COLUMNS.map(status => {
-                    const columnTasks = tasksByStatus[status] || [];
-                    const isCollapsed = collapsedColumns[status];
-                    return (
-                        <Collapsible
+            <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+                <div className="flex h-full gap-4">
+                    {STATUS_COLUMNS.map(status => (
+                        <DroppableColumn
                             key={status}
-                            open={!isCollapsed}
-                            onOpenChange={() => toggleColumnCollapse(status)}
-                            className={cn("flex flex-col rounded-lg border bg-background transition-all duration-300", isCollapsed ? 'w-16' : 'flex-shrink-0 w-80 md:w-96')}
+                            status={status}
+                            tasks={tasksByStatus[status] || []}
+                            isCollapsed={collapsedColumns[status]}
+                            toggleCollapse={() => toggleColumnCollapse(status)}
                         >
-                            <div className={cn("flex-shrink-0 p-4 border-b", isCollapsed ? 'h-full relative' : 'flex items-center gap-2')}>
-                                {isCollapsed ? (
-                                    <div className="h-full flex flex-col items-center justify-between py-4">
-                                        <div className="flex flex-col items-center">
-                                            <CollapsibleTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6">
-                                                    <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
-                                                </Button>
-                                            </CollapsibleTrigger>
-                                            <div className={cn("w-2 h-2 rounded-full mt-2", statusColorMap[status])}></div>
-                                         </div>
-                                         <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground [writing-mode:vertical-rl] rotate-180">
-                                             {status}
-                                         </h2>
-                                         <div className="text-sm font-bold">{columnTasks.length}</div>
+                            <SortableContext
+                                items={(tasksByStatus[status] || []).map(t => t.id)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                {(tasksByStatus[status] || []).map(task => (
+                                    <DraggableTaskCard key={task.id} task={task}>
+                                        <TaskCard 
+                                            task={task} 
+                                            onEdit={handleEditTask}
+                                            onSuggest={handleSuggestUpdate}
+                                            onDelete={handleDeleteRequest}
+                                            onPromote={handlePromoteRequest}
+                                            onCompleteToggle={handleTaskCompleteToggle}
+                                            onSubTaskToggle={handleSubTaskToggle}
+                                        />
+                                    </DraggableTaskCard>
+                                ))}
+                                 {(tasksByStatus[status] || []).length === 0 && !collapsedColumns[status] && (
+                                    <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                                        No tasks here.
                                     </div>
-                                ) : (
-                                    <>
-                                        <CollapsibleTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                                                <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
-                                            </Button>
-                                        </CollapsibleTrigger>
-                                        <div className={cn("w-3 h-3 rounded-full", statusColorMap[status])}></div>
-                                        <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
-                                            {status}
-                                        </h2>
-                                        <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                                            {columnTasks.length}
-                                        </span>
-                                    </>
                                 )}
-                            </div>
-                            <CollapsibleContent asChild>
-                                <div className="space-y-4 overflow-y-auto flex-1 p-4">
-                                    {columnTasks.map(task => (
-                                    <TaskCard 
-                                        key={task.id} 
-                                        task={task} 
-                                        onEdit={handleEditTask}
-                                        onSuggest={handleSuggestUpdate}
-                                        onDelete={handleDeleteRequest}
-                                        onPromote={handlePromoteRequest}
-                                        onCompleteToggle={handleTaskCompleteToggle}
-                                        onSubTaskToggle={handleSubTaskToggle}
-                                    />
-                                    ))}
-                                    {columnTasks.length === 0 && (
-                                        <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
-                                            No tasks here.
-                                        </div>
-                                    )}
-                                </div>
-                            </CollapsibleContent>
-                        </Collapsible>
-                    )
-                })}
-            </div>
+                            </SortableContext>
+                        </DroppableColumn>
+                    ))}
+                </div>
+            </DndContext>
           )}
         </div>
       </main>
