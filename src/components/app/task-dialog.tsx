@@ -31,12 +31,12 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Task, SubTask, Comment, Attachment } from '@/lib/types';
+import { Task, SubTask, Comment, Attachment, Release } from '@/lib/types';
 import { PHASES, PRIORITIES, STATUSES } from '@/lib/constants';
 import { useEffect, useMemo, useState } from 'react';
 import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/use-auth';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Combobox } from '../ui/combobox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -82,7 +82,7 @@ const taskSchema = z.object({
   comments: z.array(commentSchema).optional(),
   attachments: z.array(attachmentSchema).optional(),
   projectId: z.string().min(1, 'Project is required'),
-  releaseId: z.string().optional(),
+  releaseId: z.string().min(1, 'Release is required'),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -110,6 +110,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
   const { user } = useAuth();
   const [teamMembers, setTeamMembers] = useState<{label: string, value: string}[]>([]);
   const [projects, setProjects] = useState<{label: string, value: string}[]>([]);
+  const [releases, setReleases] = useState<Release[]>([]);
   const [newComment, setNewComment] = useState("");
   const [activeTab, setActiveTab] = useState(defaultTab);
 
@@ -117,33 +118,6 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
     setActiveTab(defaultTab);
   }, [defaultTab]);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-        const usersRef = collection(db, 'users');
-        const usersSnap = await getDocs(usersRef);
-        const userList = usersSnap.docs.map(doc => ({
-            value: doc.data().displayName,
-            label: doc.data().displayName,
-        }));
-        setTeamMembers(userList);
-    };
-    const fetchProjects = async () => {
-        if (projectId) return; // Don't fetch projects if one is already provided
-        const projectsRef = collection(db, 'projects');
-        const projectsSnap = await getDocs(projectsRef);
-        const projectList = projectsSnap.docs.map(doc => ({
-            value: doc.id,
-            label: doc.data().name,
-        }));
-        setProjects(projectList);
-    };
-    if (isOpen) {
-        fetchUsers();
-        fetchProjects();
-        setActiveTab(defaultTab);
-    }
-  }, [isOpen, defaultTab, projectId]);
-  
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
@@ -167,6 +141,55 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
       releaseId: '',
     },
   });
+
+  const selectedProjectId = form.watch('projectId');
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+        const usersRef = collection(db, 'users');
+        const usersSnap = await getDocs(usersRef);
+        const userList = usersSnap.docs.map(doc => ({
+            value: doc.data().displayName,
+            label: doc.data().displayName,
+        }));
+        setTeamMembers(userList);
+    };
+    const fetchProjects = async () => {
+        if (projectId) {
+            const projectDoc = await getDocs(query(collection(db, 'projects'), where('__name__', '==', projectId)));
+            if (!projectDoc.empty) {
+                setProjects([{ value: projectDoc.docs[0].id, label: projectDoc.docs[0].data().name }]);
+            }
+            return;
+        }
+        const projectsRef = collection(db, 'projects');
+        const projectsSnap = await getDocs(projectsRef);
+        const projectList = projectsSnap.docs.map(doc => ({
+            value: doc.id,
+            label: doc.data().name,
+        }));
+        setProjects(projectList);
+    };
+    if (isOpen) {
+        fetchUsers();
+        fetchProjects();
+        setActiveTab(defaultTab);
+    }
+  }, [isOpen, defaultTab, projectId]);
+  
+  useEffect(() => {
+    if (selectedProjectId) {
+      const releasesQuery = query(collection(db, 'projects', selectedProjectId, 'releases'));
+      const unsubscribe = onSnapshot(releasesQuery, (snapshot) => {
+        const releasesData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Release));
+        setReleases(releasesData);
+      });
+      return () => unsubscribe();
+    } else {
+        setReleases([]);
+    }
+  }, [selectedProjectId]);
+
 
   const { fields: subTaskFields, append: appendSubTask, remove: removeSubTask } = useFieldArray({
     control: form.control,
@@ -296,7 +319,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
               </TabsList>
               <TabsContent value="details" className="flex-1 overflow-y-auto pr-2">
                 <div className="grid gap-4 py-4">
-                  {!projectId && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                         name="projectId"
                         control={form.control}
@@ -315,7 +338,19 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
                           </FormItem>
                         )}
                       />
-                  )}
+                    <FormField name="releaseId" control={form.control} render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Release</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value} disabled={!selectedProjectId}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select a release" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {releases.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
                   <FormField name="name" control={form.control} render={({ field }) => (
                     <FormItem>
                       <FormLabel>Task Name</FormLabel>
