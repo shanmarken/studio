@@ -29,6 +29,7 @@ interface DashboardProps {
 export default function Dashboard({ projectId }: DashboardProps) {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(true);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
@@ -44,6 +45,17 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [releases, setReleases] = useState<Release[]>([]);
   const [selectedRelease, setSelectedRelease] = useState<string | null>(null);
   const [isManageReleasesOpen, setIsManageReleasesOpen] = useState(false);
+
+  useEffect(() => {
+    if (!projectId) return;
+    const projectRef = doc(db, 'projects', projectId);
+    const unsubscribe = onSnapshot(projectRef, (doc) => {
+        if (doc.exists()) {
+            setProjectName(doc.data().name);
+        }
+    });
+    return () => unsubscribe();
+  }, [projectId]);
 
 
   useEffect(() => {
@@ -304,9 +316,12 @@ export default function Dashboard({ projectId }: DashboardProps) {
     return tasks.filter(task => task.releaseId === selectedRelease);
   }, [tasks, selectedRelease]);
 
-  const handleDeleteRelease = async (releaseId: string, releaseName: string) => {
+  const handleDeleteRelease = async (releaseId: string) => {
     try {
         const releaseRef = doc(db, 'projects', projectId, 'releases', releaseId);
+        const releaseSnap = await getDoc(releaseRef);
+        const releaseName = releaseSnap.data()?.name || 'Untitled Release';
+
         await deleteDoc(releaseRef);
         toast({ title: 'Release Deleted', description: `"${releaseName}" has been deleted.`});
         // After deletion, the useEffect for releases will re-run and handle selection.
@@ -331,6 +346,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
   return (
     <div className="flex flex-col h-full">
       <Header 
+        projectName={projectName}
         onAddTask={handleAddTask} 
         onExport={handleExport}
         releases={releases}

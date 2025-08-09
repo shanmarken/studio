@@ -34,6 +34,7 @@ import {
 
 
 type HeaderProps = {
+  projectName: string;
   onAddTask: () => void;
   onExport: () => void;
   releases: Release[];
@@ -42,7 +43,7 @@ type HeaderProps = {
   onManageReleases: () => void;
 };
 
-export function Header({ onAddTask, onExport, releases, selectedRelease, onSelectRelease, onManageReleases }: HeaderProps) {
+export function Header({ projectName, onAddTask, onExport, releases, selectedRelease, onSelectRelease, onManageReleases }: HeaderProps) {
   const { user } = useAuth();
   const { setTheme } = useTheme();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
@@ -57,9 +58,9 @@ export function Header({ onAddTask, onExport, releases, selectedRelease, onSelec
                   <ProjectPulseLogo />
               </Link>
               <div className="flex flex-col">
-                  <Link href="/projects" className="text-xs text-muted-foreground hidden md:block hover:underline">Projects</Link>
+                  <Link href="/projects" className="text-xs text-muted-foreground hidden md:block hover:underline">Dashboard</Link>
                   <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
-                  Project Dashboard
+                    {projectName || "Project Dashboard"}
                   </h1>
               </div>
             </div>

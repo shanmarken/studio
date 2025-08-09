@@ -53,7 +53,7 @@ type ManageReleasesDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
   projectId: string;
   releases: Release[];
-  onDeleteRelease: (releaseId: string, releaseName: string) => void;
+  onDeleteRelease: (releaseId: string) => void;
 };
 
 export function ManageReleasesDialog({ isOpen, onOpenChange, projectId, releases, onDeleteRelease }: ManageReleasesDialogProps) {
@@ -122,7 +122,7 @@ export function ManageReleasesDialog({ isOpen, onOpenChange, projectId, releases
                                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                                           <AlertDialogAction 
                                             className="bg-destructive hover:bg-destructive/90"
-                                            onClick={() => onDeleteRelease(release.id, release.name)}>
+                                            onClick={() => onDeleteRelease(release.id)}>
                                             Delete
                                           </AlertDialogAction>
                                         </AlertDialogFooter>
