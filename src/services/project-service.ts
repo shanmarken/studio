@@ -14,7 +14,7 @@ const TaskSchema = z.object({
   estimatedHours: z.number(),
   startDate: z.string(),
   endDate: z.string(),
-  status: z.enum(['To Do', 'In Progress', 'Completed', 'Blocked']),
+  status: z.enum(['To Do', 'In Progress', 'Testing', 'Completed', 'Blocked']),
   percentComplete: z.number(),
   dependencies: z.string().optional(),
   notes: z.string().optional(),
@@ -52,6 +52,7 @@ export async function getAllProjectsWithTasks(): Promise<ProjectWithTasks[]> {
           // Ensure dates are ISO strings for serialization
           startDate: new Date(data.startDate).toISOString(),
           endDate: new Date(data.endDate).toISOString(),
+          status: data.status || 'To Do',
         } as z.infer<typeof TaskSchema>;
       });
 
