@@ -73,7 +73,7 @@ const taskSchema = z.object({
   estimatedHours: z.coerce.number().min(0, 'Must be a positive number'),
   startDate: z.date(),
   endDate: z.date(),
-  status: z.enum(['To Do', 'In Progress', 'Completed', 'Blocked']),
+  status: z.enum(['To Do', 'In Progress', 'Testing', 'Completed', 'Blocked']),
   percentComplete: z.number().min(0).max(100),
   dependencies: z.string().optional(),
   notes: z.string().optional(),
@@ -143,6 +143,15 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
   });
 
   const selectedProjectId = form.watch('projectId');
+  const percentCompleteValue = form.watch('percentComplete');
+
+  useEffect(() => {
+    if (percentCompleteValue === 100) {
+        if (form.getValues('status') !== 'Completed') {
+           form.setValue('status', 'Testing');
+        }
+    }
+  }, [percentCompleteValue, form]);
 
   useEffect(() => {
     const fetchUsers = async () => {

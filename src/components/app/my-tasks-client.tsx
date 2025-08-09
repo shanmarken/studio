@@ -201,6 +201,10 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
             task.percentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : task.percentComplete;
         }
 
+        if (task.percentComplete === 100 && task.status !== 'Completed') {
+            task.status = 'Testing';
+        }
+
         const taskData: any = {
             ...task,
             startDate: task.startDate.toISOString(),
@@ -266,7 +270,7 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
     const taskRef = doc(db, 'projects', projectId, 'tasks', taskId);
     let updateData: Partial<Task> = {};
     if (isComplete) {
-      updateData = { status: 'Completed', percentComplete: 100 };
+      updateData = { status: 'Testing', percentComplete: 100 };
     } else {
       const newPercent = (task.subTasks && task.subTasks.length > 0) ? task.percentComplete : 0;
       updateData = { status: 'In Progress', percentComplete: newPercent };
@@ -291,11 +295,11 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
     let newStatus = task.status;
     if (totalCount > 0) {
         if (newPercentComplete === 100) {
-        newStatus = 'Completed';
+          newStatus = 'Testing';
         } else if (newPercentComplete > 0 && task.status !== 'Blocked') {
-        newStatus = 'In Progress';
-        } else if (newPercentComplete === 0 && task.status === 'Completed') {
-        newStatus = 'In Progress';
+          newStatus = 'In Progress';
+        } else if (newPercentComplete === 0 && (task.status === 'Completed' || task.status === 'Testing')) {
+          newStatus = 'In Progress';
         }
     }
     

@@ -52,6 +52,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
   const hasSubtasks = task.subTasks && task.subTasks.length > 0;
   const commentCount = task.comments?.length || 0;
   const attachmentCount = task.attachments?.length || 0;
+  const isDone = task.status === 'Completed' || task.status === 'Testing';
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -61,7 +62,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                 <div className="flex items-start gap-3 flex-1 min-w-0">
                     <Checkbox
                     id={`task-${task.id}`}
-                    checked={task.status === 'Completed'}
+                    checked={isDone}
                     onCheckedChange={(checked) => onCompleteToggle(task.id, !!checked)}
                     className="mt-1"
                     disabled={hasSubtasks}
