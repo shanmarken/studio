@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, User as UserIcon, Filter, Search, Sun, Moon } from 'lucide-react';
+import { LogOut, User as UserIcon, Filter, Search, Sun, Moon, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { auth } from '@/lib/firebase';
 import { UserAvatar } from './user-avatar';
@@ -28,9 +28,10 @@ interface MainHeaderProps {
     showSearch?: boolean;
     searchTerm?: string;
     onSearchChange?: (value: string) => void;
+    onAddTask?: () => void;
 }
 
-export function MainHeader({ title, showSearch = false, searchTerm, onSearchChange }: MainHeaderProps) {
+export function MainHeader({ title, showSearch = false, searchTerm, onSearchChange, onAddTask }: MainHeaderProps) {
   const { user } = useAuth();
   const { setTheme } = useTheme();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
@@ -41,6 +42,12 @@ export function MainHeader({ title, showSearch = false, searchTerm, onSearchChan
         <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
             <h1 className="text-2xl font-bold">{title}</h1>
             <div className="flex items-center gap-2">
+                {onAddTask && (
+                    <Button onClick={onAddTask}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Task
+                    </Button>
+                )}
                 {showSearch && (
                     <>
                         <Button variant="outline">
