@@ -45,22 +45,42 @@ const generateInsightsPrompt = ai.definePrompt({
   name: 'generateInsightsPrompt',
   input: { schema: ProjectWithTasks },
   output: { schema: GenerateInsightsOutputSchema },
-  prompt: `You are an expert project management analyst. Your task is to provide a detailed analysis of a software project based on a simplified dataset.
-  
-  Analyze the following project data, which includes the project name and a list of its tasks with only their name, assignee, status, and percent complete.
-  
-  Project Data:
-  {{{json this}}}
-  
-  Your analysis should include three parts:
-  
-  1.  **Overall Summary**: Provide a high-level executive summary of the project. Comment on the general velocity based on the distribution of task statuses. Identify any potential bottlenecks if many tasks are in 'Blocked' or 'Testing' state.
-  
-  2.  **At-Risk Items**: Based on the task names and statuses, identify any tasks that seem like they could be at risk. For example, a task named "Finalize API" that is still 'In Progress' might be a risk. Provide its name and a brief, actionable reason why it might be at risk.
-  
-  3.  **Team Performance**: Analyze the workload and output of each team member. For each person, calculate the number of completed, in-progress, and blocked tasks. Provide a brief, objective performance summary. Note if a team member seems overloaded with in-progress tasks or is frequently blocked.
-  
-  Provide a structured, data-driven, and objective report. If there are no tasks, state that analysis cannot be performed.`,
+  prompt: `You are an AI assistant integrated into a project management app.
+
+Your job: Analyze the provided project data and return a structured JSON object containing insights about overall progress, risks, and team performance.
+
+Strict output rules:
+- Return ONLY valid JSON — no extra commentary, no markdown code fences.
+- Match the JSON structure EXACTLY as shown in the example below.
+- Do not include any keys not in the schema.
+- All string fields must be plain text without line breaks unless necessary.
+- All numbers must be integers (no decimals).
+
+Here is the required JSON structure:
+
+{
+  "overallSummary": "A high-level summary of the project, including progress, velocity, and any major blockers.",
+  "atRiskProjects": [
+    {
+      "projectName": "The name of the project.",
+      "projectId": "The ID of the project.",
+      "riskReason": "A brief explanation of why the project is considered at risk.",
+      "suggestedAction": "A concrete next step to mitigate the risk."
+    }
+  ],
+  "teamPerformance": [
+    {
+      "teamMemberName": "The team member's name.",
+      "completedTasks": 0,
+      "inProgressTasks": 0,
+      "blockedTasks": 0,
+      "performanceSummary": "A brief summary of the team member's performance and workload."
+    }
+  ]
+}
+
+Here is the project data you should analyze:
+{{{json this}}}`,
 });
 
 const generateInsightsFlow = ai.defineFlow(
