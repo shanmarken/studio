@@ -27,6 +27,7 @@ const STATUS_COLUMNS: Status[] = ['To Do', 'In Progress', 'Completed', 'Blocked'
 interface TaskWithProject extends Task {
   projectName: string;
   projectId: string;
+  releaseName?: string;
 }
 
 interface MyTasksClientProps {
@@ -79,11 +80,21 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
             const projectSnap = await getDoc(projectRef);
             const projectName = projectSnap.exists() ? projectSnap.data()?.name : 'Unknown Project';
             
+            let releaseName = '';
+            if (taskData.releaseId) {
+                const releaseRef = doc(db, 'projects', projectRef.id, 'releases', taskData.releaseId);
+                const releaseSnap = await getDoc(releaseRef);
+                if (releaseSnap.exists()) {
+                    releaseName = releaseSnap.data()?.name;
+                }
+            }
+
             return {
               ...(taskData as Task),
               id: taskDoc.id,
               projectName: projectName,
               projectId: projectRef.id,
+              releaseName: releaseName,
               startDate: new Date(taskData.startDate),
               endDate: new Date(taskData.endDate),
               comments: taskData.comments?.map((c: any) => ({...c, createdAt: new Date(c.createdAt)})) || []

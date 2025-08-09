@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { UserAvatar } from './user-avatar';
 import { Progress } from '../ui/progress';
 import { Button } from '../ui/button';
-import { BrainCircuit, Edit, Trash2, ArrowRightCircle, Folder, Calendar, MessageSquare, Paperclip } from 'lucide-react';
+import { BrainCircuit, Edit, Trash2, ArrowRightCircle, Folder, Calendar, MessageSquare, Paperclip, GitBranch } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
@@ -19,6 +19,7 @@ import { format } from 'date-fns';
 
 interface TaskWithProject extends Task {
   projectName?: string;
+  releaseName?: string;
 }
 
 type TaskCardProps = {
@@ -152,10 +153,10 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                     ) : (
                         <div/>
                     )}
-                    {task.projectName && (
+                    {task.releaseName && (
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="h-4 w-4" />
-                        <span>{format(task.endDate, 'MMM d')}</span>
+                        <GitBranch className="h-4 w-4" />
+                        <span>{task.releaseName}</span>
                       </div>
                     )}
                 </div>
