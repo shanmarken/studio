@@ -25,7 +25,7 @@ import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { LoaderCircle, Trash2 } from 'lucide-react';
 import { Release } from '@/lib/types';
-import { collection, addDoc, serverTimestamp, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
@@ -53,9 +53,10 @@ type ManageReleasesDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
   projectId: string;
   releases: Release[];
+  onDeleteRelease: (releaseId: string, releaseName: string) => void;
 };
 
-export function ManageReleasesDialog({ isOpen, onOpenChange, projectId, releases }: ManageReleasesDialogProps) {
+export function ManageReleasesDialog({ isOpen, onOpenChange, projectId, releases, onDeleteRelease }: ManageReleasesDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -84,17 +85,6 @@ export function ManageReleasesDialog({ isOpen, onOpenChange, projectId, releases
         setIsLoading(false);
     }
   };
-
-  const handleDeleteRelease = async (releaseId: string, releaseName: string) => {
-    try {
-        const releaseRef = doc(db, 'projects', projectId, 'releases', releaseId);
-        await deleteDoc(releaseRef);
-        toast({ title: 'Release Deleted', description: `"${releaseName}" has been deleted.`});
-    } catch (error) {
-        console.error("Error deleting release: ", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete release.' });
-    }
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -132,7 +122,7 @@ export function ManageReleasesDialog({ isOpen, onOpenChange, projectId, releases
                                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                                           <AlertDialogAction 
                                             className="bg-destructive hover:bg-destructive/90"
-                                            onClick={() => handleDeleteRelease(release.id, release.name)}>
+                                            onClick={() => onDeleteRelease(release.id, release.name)}>
                                             Delete
                                           </AlertDialogAction>
                                         </AlertDialogFooter>

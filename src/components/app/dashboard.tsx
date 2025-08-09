@@ -55,6 +55,9 @@ export default function Dashboard({ projectId }: DashboardProps) {
         setReleases(releasesData);
         if (!selectedRelease && releasesData.length > 0) {
             setSelectedRelease(releasesData[0].id);
+        } else if (selectedRelease && !releasesData.some(r => r.id === selectedRelease)) {
+            // If the selected release was deleted, select the first one
+            setSelectedRelease(releasesData.length > 0 ? releasesData[0].id : null);
         } else if (releasesData.length === 0) {
             setSelectedRelease(null);
         }
@@ -301,6 +304,18 @@ export default function Dashboard({ projectId }: DashboardProps) {
     return tasks.filter(task => task.releaseId === selectedRelease);
   }, [tasks, selectedRelease]);
 
+  const handleDeleteRelease = async (releaseId: string, releaseName: string) => {
+    try {
+        const releaseRef = doc(db, 'projects', projectId, 'releases', releaseId);
+        await deleteDoc(releaseRef);
+        toast({ title: 'Release Deleted', description: `"${releaseName}" has been deleted.`});
+        // After deletion, the useEffect for releases will re-run and handle selection.
+    } catch (error) {
+        console.error("Error deleting release: ", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete release.' });
+    }
+  }
+
 
   if (loading) {
      return (
@@ -438,6 +453,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
         onOpenChange={setIsManageReleasesOpen}
         projectId={projectId}
         releases={releases}
+        onDeleteRelease={handleDeleteRelease}
       />
     </div>
   );
