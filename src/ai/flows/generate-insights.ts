@@ -35,9 +35,8 @@ export type GenerateInsightsOutput = z.infer<typeof GenerateInsightsOutputSchema
 
 export async function generateInsights(): Promise<GenerateInsightsOutput> {
   const projects = await getAllProjectsWithTasks();
-  // We pass all projects to the flow, including those without tasks.
-  const activeProjects = projects.filter(p => p.tasks.length > 0);
-  return generateInsightsFlow(activeProjects);
+  // Pass all projects to the flow, including those without tasks.
+  return generateInsightsFlow(projects);
 }
 
 const generateInsightsPrompt = ai.definePrompt({
@@ -69,7 +68,8 @@ const generateInsightsFlow = ai.defineFlow(
     outputSchema: GenerateInsightsOutputSchema,
   },
   async (projects) => {
-    if (projects.length === 0) {
+    const activeProjects = projects.filter(p => p.tasks.length > 0);
+    if (activeProjects.length === 0) {
         return {
             overallSummary: "There are no active projects with tasks to analyze. Add some tasks to your projects to generate insights.",
             atRiskProjects: [],
