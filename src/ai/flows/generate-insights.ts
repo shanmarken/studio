@@ -9,7 +9,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getAllProjectsWithTasks, getProjectWithTasks, ProjectWithTasks } from '@/services/project-service';
+import { getProjectWithTasks, ProjectWithTasks } from '@/services/project-service';
 
 const AtRiskProjectSchema = z.object({
     projectName: z.string().describe('The name of the project.'),
@@ -38,12 +38,12 @@ export async function generateInsights(projectId: string): Promise<GenerateInsig
   if (!project) {
     throw new Error('Project not found');
   }
-  return generateInsightsFlow([project]); // Pass as an array
+  return generateInsightsFlow(project);
 }
 
 const generateInsightsPrompt = ai.definePrompt({
   name: 'generateInsightsPrompt',
-  input: { schema: z.array(ProjectWithTasks) },
+  input: { schema: ProjectWithTasks },
   output: { schema: GenerateInsightsOutputSchema },
   prompt: `You are an expert project management analyst. Your task is to provide a detailed analysis of a software project.
   
@@ -66,11 +66,10 @@ const generateInsightsPrompt = ai.definePrompt({
 const generateInsightsFlow = ai.defineFlow(
   {
     name: 'generateInsightsFlow',
-    inputSchema: z.array(ProjectWithTasks),
+    inputSchema: ProjectWithTasks,
     outputSchema: GenerateInsightsOutputSchema,
   },
-  async (projects) => {
-    const project = projects[0]; // We are now only processing one project at a time.
+  async (project) => {
     if (!project || project.tasks.length === 0) {
         return {
             overallSummary: "There are no tasks in this project to analyze. Add some tasks to generate insights.",
@@ -78,7 +77,7 @@ const generateInsightsFlow = ai.defineFlow(
             teamPerformance: []
         };
     }
-    const { output } = await generateInsightsPrompt(projects);
+    const { output } = await generateInsightsPrompt(project);
     return output!;
   }
 );
