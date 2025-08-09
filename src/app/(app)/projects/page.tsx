@@ -84,14 +84,13 @@ export default function ProjectsPage() {
         }
   
         const projectsWithTasks: Project[] = [];
-        const unsubscribes: (() => void)[] = [];
         let projectsProcessed = 0;
   
-        allProjects.forEach(project => {
+        const unsubscribes = allProjects.map(project => {
             const tasksPath = `projects/${project.id}/tasks`;
             const tasksRef = collection(db, tasksPath);
   
-            const taskUnsubscribe = onSnapshot(tasksRef, (tasksSnapshot) => {
+            return onSnapshot(tasksRef, (tasksSnapshot) => {
                 const taskCount = tasksSnapshot.size;
                 const completedTaskCount = tasksSnapshot.docs.filter(d => d.data().status === 'Completed').length;
                 
@@ -102,20 +101,13 @@ export default function ProjectsPage() {
                     projectsWithTasks.push({ ...project, taskCount, completedTaskCount });
                 }
   
-                setProjects([...projectsWithTasks]);
-
-                if (!project.hasOwnProperty('taskCount')) {
-                    projectsProcessed++;
-                }
-
-                if (projectsProcessed === allProjects.length) {
-                    setLoading(false);
-                }
+                setProjects([...projectsWithTasks].sort((a,b) => allProjects.findIndex(p => p.id === a.id) - allProjects.findIndex(p => p.id === b.id)));
             }, (error) => {
                 console.error(`Error loading tasks for project ${project.id}: `, error);
             });
-            unsubscribes.push(taskUnsubscribe);
         });
+
+        setLoading(false);
         
         return () => {
             unsubscribes.forEach(unsub => unsub());
