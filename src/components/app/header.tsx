@@ -1,11 +1,13 @@
 
+'use client';
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileDown, PlusCircle, ArrowLeft, LogOut, User as UserIcon, Moon, Sun } from 'lucide-react';
+import { FileDown, PlusCircle, ArrowLeft, LogOut, User as UserIcon, Moon, Sun, GitBranch, ChevronsUpDown } from 'lucide-react';
 import { ProjectPulseLogo } from './project-pulse-logo';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { UserAvatar } from './user-avatar';
 import {
   DropdownMenu,
@@ -21,14 +23,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ProfileDialog } from './profile-dialog';
 import { useTheme } from 'next-themes';
+import { Release } from '@/lib/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 
 type HeaderProps = {
   onAddTask: () => void;
   onExport: () => void;
+  releases: Release[];
+  selectedRelease: string | null;
+  onSelectRelease: (releaseId: string) => void;
+  onManageReleases: () => void;
 };
 
-export function Header({ onAddTask, onExport }: HeaderProps) {
+export function Header({ onAddTask, onExport, releases, selectedRelease, onSelectRelease, onManageReleases }: HeaderProps) {
   const { user } = useAuth();
   const { setTheme } = useTheme();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
@@ -50,6 +64,18 @@ export function Header({ onAddTask, onExport }: HeaderProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Select value={selectedRelease || ''} onValueChange={onSelectRelease}>
+                <SelectTrigger className="w-[180px]">
+                  <GitBranch className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Select a release" />
+                </SelectTrigger>
+                <SelectContent>
+                  {releases.map(release => (
+                    <SelectItem key={release.id} value={release.id}>{release.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={onManageReleases}>Manage Releases</Button>
               <Button onClick={onAddTask} className="gap-2">
                 <PlusCircle />
                 <span className="hidden sm:inline">Add Task</span>

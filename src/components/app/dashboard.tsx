@@ -2,8 +2,8 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Task, Status } from '@/lib/types';
+import { useState, useEffect, useMemo } from 'react';
+import { Task, Status, Release } from '@/lib/types';
 import { PHASES } from '@/lib/constants';
 import { PhaseColumn } from './phase-column';
 import { Header } from './header';
@@ -14,12 +14,13 @@ import { SuggestUpdateDialog } from './suggest-update-dialog';
 import { DeleteTaskDialog } from './delete-task-dialog';
 import { PromoteTaskDialog } from './promote-task-dialog';
 import { useAuth } from '@/hooks/use-auth';
-import { collection, query, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ChevronsRight, LoaderCircle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
+import { ManageReleasesDialog } from './manage-releases-dialog';
 
 interface DashboardProps {
   projectId: string;
@@ -40,13 +41,42 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const { toast } = useToast();
   const [collapsedColumns, setCollapsedColumns] = useState<Record<string, boolean>>({});
   const [defaultTaskDialogTab, setDefaultTaskDialogTab] = useState<string | undefined>(undefined);
+  const [releases, setReleases] = useState<Release[]>([]);
+  const [selectedRelease, setSelectedRelease] = useState<string | null>(null);
+  const [isManageReleasesOpen, setIsManageReleasesOpen] = useState(false);
 
 
   useEffect(() => {
-    if (!user || !projectId) return;
+    if (!projectId) return;
+    
+    const releasesQuery = query(collection(db, 'projects', projectId, 'releases'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(releasesQuery, (snapshot) => {
+        const releasesData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Release));
+        setReleases(releasesData);
+        if (!selectedRelease && releasesData.length > 0) {
+            setSelectedRelease(releasesData[0].id);
+        } else if (releasesData.length === 0) {
+            setSelectedRelease(null);
+        }
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+}, [projectId, selectedRelease]);
+
+
+  useEffect(() => {
+    if (!user || !projectId || !selectedRelease) {
+        setTasks([]);
+        setLoading(!selectedRelease); // if no release, stop loading
+        return;
+    };
 
     setLoading(true);
-    const tasksQuery = query(collection(db, 'projects', projectId, 'tasks'));
+    const tasksQuery = query(
+        collection(db, 'projects', projectId, 'tasks'),
+        where('releaseId', '==', selectedRelease)
+    );
 
     const unsubscribe = onSnapshot(tasksQuery, (querySnapshot) => {
       const loadedTasks: Task[] = [];
@@ -84,7 +114,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
     });
 
     return () => unsubscribe();
-  }, [projectId, toast, user]);
+  }, [projectId, toast, user, selectedRelease]);
 
 
   const handleAddTask = () => {
@@ -142,7 +172,8 @@ export default function Dashboard({ projectId }: DashboardProps) {
         endDate: task.endDate.toISOString(),
         dependencies: task.dependencies || '',
         notes: task.notes || '',
-        comments: task.comments?.map(c => ({...c, createdAt: c.createdAt.toISOString()})) || []
+        comments: task.comments?.map(c => ({...c, createdAt: c.createdAt.toISOString()})) || [],
+        releaseId: selectedRelease
     };
     
     delete taskData.id;
@@ -265,6 +296,11 @@ export default function Dashboard({ projectId }: DashboardProps) {
     setCollapsedColumns(prev => ({ ...prev, [phase]: !prev[phase] }));
   };
 
+  const filteredTasks = useMemo(() => {
+    if (!selectedRelease) return [];
+    return tasks.filter(task => task.releaseId === selectedRelease);
+  }, [tasks, selectedRelease]);
+
 
   if (loading) {
      return (
@@ -279,13 +315,21 @@ export default function Dashboard({ projectId }: DashboardProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <Header onAddTask={handleAddTask} onExport={handleExport} />
+      <Header 
+        onAddTask={handleAddTask} 
+        onExport={handleExport}
+        releases={releases}
+        selectedRelease={selectedRelease}
+        onSelectRelease={setSelectedRelease}
+        onManageReleases={() => setIsManageReleasesOpen(true)}
+        />
 
       <main className="flex-1 overflow-x-auto custom-scrollbar">
         <div className="p-4 sm:p-6 lg:p-8 h-full">
+         {selectedRelease ? (
           <div className="flex gap-4 h-full">
             {PHASES.map((phase) => {
-              const phaseTasks = tasks.filter((task) => task.phase === phase);
+              const phaseTasks = filteredTasks.filter((task) => task.phase === phase);
               const isCollapsed = collapsedColumns[phase];
               return (
                 <Collapsible
@@ -343,6 +387,18 @@ export default function Dashboard({ projectId }: DashboardProps) {
               )
             })}
           </div>
+           ) : (
+             <div className="flex flex-col items-center justify-center h-full max-w-lg mx-auto text-center rounded-lg border-2 border-dashed p-12 bg-background">
+                <GitBranch className="h-12 w-12 text-muted-foreground mb-4" />
+                <h2 className="mt-6 text-xl font-semibold">No Releases Found</h2>
+                <p className="mt-2 text-center text-muted-foreground">
+                    This project doesn't have any releases yet. Create one to start adding tasks.
+                </p>
+                <Button className="mt-6" onClick={() => setIsManageReleasesOpen(true)}>
+                    Create Your First Release
+                </Button>
+            </div>
+           )}
         </div>
       </main>
 
@@ -354,6 +410,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
         tasks={tasks}
         defaultTab={defaultTaskDialogTab}
         projectId={projectId}
+        releaseId={selectedRelease}
       />
       
       <SuggestUpdateDialog
@@ -374,6 +431,13 @@ export default function Dashboard({ projectId }: DashboardProps) {
         onOpenChange={setIsPromoteDialogOpen}
         onConfirm={handleConfirmPromote}
         task={taskToPromote}
+      />
+
+      <ManageReleasesDialog
+        isOpen={isManageReleasesOpen}
+        onOpenChange={setIsManageReleasesOpen}
+        projectId={projectId}
+        releases={releases}
       />
     </div>
   );

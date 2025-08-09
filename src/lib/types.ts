@@ -24,6 +24,13 @@ export type SubTask = {
   completed: boolean;
 };
 
+export type Release = {
+  id: string;
+  name: string;
+  projectId: string;
+  createdAt: any;
+}
+
 export type Task = {
   id: string;
   name: string;
@@ -43,4 +50,5 @@ export type Task = {
   comments?: Comment[];
   attachments?: Attachment[];
   projectId?: string;
+  releaseId?: string;
 };

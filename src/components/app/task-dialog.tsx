@@ -82,6 +82,7 @@ const taskSchema = z.object({
   comments: z.array(commentSchema).optional(),
   attachments: z.array(attachmentSchema).optional(),
   projectId: z.string().min(1, 'Project is required'),
+  releaseId: z.string().optional(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -94,6 +95,7 @@ type TaskDialogProps = {
   tasks: Task[];
   defaultTab?: string;
   projectId?: string; // Add projectId prop
+  releaseId?: string | null;
 };
 
 const getFileIcon = (fileType: string) => {
@@ -104,7 +106,7 @@ const getFileIcon = (fileType: string) => {
 };
 
 
-export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, defaultTab = "details", projectId }: TaskDialogProps) {
+export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, defaultTab = "details", projectId, releaseId }: TaskDialogProps) {
   const { user } = useAuth();
   const [teamMembers, setTeamMembers] = useState<{label: string, value: string}[]>([]);
   const [projects, setProjects] = useState<{label: string, value: string}[]>([]);
@@ -162,6 +164,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
       comments: [],
       attachments: [],
       projectId: '',
+      releaseId: '',
     },
   });
 
@@ -185,6 +188,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
       form.reset({
         ...taskToEdit,
         projectId: taskToEdit.projectId || projectId || '',
+        releaseId: taskToEdit.releaseId || releaseId || '',
         startDate: new Date(taskToEdit.startDate),
         endDate: new Date(taskToEdit.endDate),
         percentComplete: taskToEdit.percentComplete || 0,
@@ -211,9 +215,10 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
         comments: [],
         attachments: [],
         projectId: projectId || '',
+        releaseId: releaseId || '',
       });
     }
-  }, [taskToEdit, form, isOpen, user, projectId]);
+  }, [taskToEdit, form, isOpen, user, projectId, releaseId]);
 
   const handleAddComment = () => {
     if (newComment.trim() && user) {
