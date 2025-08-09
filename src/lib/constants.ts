@@ -13,7 +13,7 @@ export const PHASES = [
   'Post-Deployment Monitoring',
 ];
 
-export const STATUSES: Status[] = ['To Do', 'In Progress', 'Completed', 'Blocked'];
+export const STATUSES: Status[] = ['To Do', 'In Progress', 'Testing', 'Completed', 'Blocked'];
 export const PRIORITIES: Priority[] = ['High', 'Medium', 'Low'];
 
 export const INITIAL_TASKS: Task[] = [];

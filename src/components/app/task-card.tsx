@@ -44,6 +44,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
   const statusColorMap: Record<Task['status'], string> = {
     'To Do': 'bg-gray-500',
     'In Progress': 'bg-blue-500',
+    'Testing': 'bg-purple-500',
     Completed: 'bg-green-500',
     Blocked: 'bg-red-500',
   };
@@ -133,6 +134,7 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                         <Badge variant="outline" className={cn(
                             task.status === 'To Do' && 'bg-gray-500/20 text-gray-700 border-gray-500/30 dark:text-gray-400',
                             task.status === 'In Progress' && 'bg-blue-500/20 text-blue-700 border-blue-500/30 dark:text-blue-400',
+                            task.status === 'Testing' && 'bg-purple-500/20 text-purple-700 border-purple-500/30 dark:text-purple-400',
                             task.status === 'Completed' && 'bg-green-500/20 text-green-700 border-green-500/30 dark:text-green-400',
                             task.status === 'Blocked' && 'bg-destructive/20 text-destructive border-destructive/30 dark:text-destructive'
                         )}>

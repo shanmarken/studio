@@ -22,7 +22,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 
 
-const STATUS_COLUMNS: Status[] = ['To Do', 'In Progress', 'Completed', 'Blocked'];
+const STATUS_COLUMNS: Status[] = ['To Do', 'In Progress', 'Testing', 'Completed', 'Blocked'];
 
 interface TaskWithProject extends Task {
   projectName: string;
@@ -42,6 +42,7 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
   const [collapsedColumns, setCollapsedColumns] = useState<Record<Status, boolean>>({
     'To Do': false,
     'In Progress': false,
+    'Testing': false,
     Completed: true,
     Blocked: false,
   });
@@ -140,6 +141,7 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
   const statusColorMap: Record<Status, string> = {
     'To Do': 'bg-gray-500',
     'In Progress': 'bg-blue-500',
+    'Testing': 'bg-purple-500',
     Completed: 'bg-green-500',
     Blocked: 'bg-red-500',
   };

@@ -21,7 +21,7 @@ const SuggestUpdatesInputSchema = z.object({
   startDate: z.string().describe('The start date of the task (ISO format).'),
   endDate: z.string().describe('The end date of the task (ISO format).'),
   currentStatus: z
-    .enum(['To Do', 'In Progress', 'Completed', 'Blocked'])
+    .enum(['To Do', 'In Progress', 'Testing', 'Completed', 'Blocked'])
     .describe('The current status of the task.'),
   percentComplete: z.number().describe('The percentage of the task that is complete.'),
   dependencies: z.string().optional().describe('Any dependencies for the task.'),

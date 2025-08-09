@@ -28,6 +28,7 @@ interface TaskWithProject extends Task {
 const statusColorMap: Record<Status, string> = {
     'To Do': 'bg-gray-500/10 border-gray-500/40 hover:bg-gray-500/20',
     'In Progress': 'bg-blue-500/10 border-blue-500/40 hover:bg-blue-500/20',
+    'Testing': 'bg-purple-500/10 border-purple-500/40 hover:bg-purple-500/20',
     'Completed': 'bg-green-500/10 border-green-500/40 hover:bg-green-500/20',
     'Blocked': 'bg-red-500/10 border-red-500/40 hover:bg-red-500/20',
   };
