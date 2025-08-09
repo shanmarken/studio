@@ -63,21 +63,23 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <Card className="mb-4 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow duration-300">
-        <div {...dragHandleProps}>
-            <CardHeader className="p-4 cursor-grab active:cursor-grabbing">
+        
+            <CardHeader className="p-4">
             {isOpen ? (
                     <div className="flex items-start gap-3 flex-1 min-w-0">
+                         <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing pt-1">
+                            <GripVertical className="size-4 text-muted-foreground" />
+                        </div>
                         <Checkbox
                         id={`task-${task.id}`}
                         checked={isDone}
                         onCheckedChange={(checked) => onCompleteToggle(task.id, !!checked)}
                         className="mt-1"
-                        disabled={hasSubtasks}
                         />
                         <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
                             <CollapsibleTrigger asChild>
-                                <div className="flex-1 text-left min-w-0">
-                                    <label htmlFor={`task-${task.id}`} className={cn("cursor-pointer font-semibold", hasSubtasks && "cursor-default")}>{task.name}</label>
+                                <div className="flex-1 text-left min-w-0 cursor-pointer">
+                                    <label htmlFor={`task-${task.id}`} className={cn("font-semibold cursor-pointer")}>{task.name}</label>
                                 </div>
                             </CollapsibleTrigger>
                             <div className="flex items-center">
@@ -97,9 +99,9 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                         </div>
                     </div>
             ) : (
-                    <CollapsibleTrigger asChild>
-                        <div className="flex justify-between items-center gap-2 cursor-pointer">
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="flex justify-between items-center gap-2">
+                        <CollapsibleTrigger asChild>
+                            <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
                                 <div className="relative flex-shrink-0">
                                     <UserAvatar name={task.assignedTo} />
                                     <span 
@@ -113,22 +115,25 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                                     <p className="font-semibold truncate">{task.name}</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                                <Button variant="ghost" size="icon" onClick={(e) => handleButtonClick(e, () => onEdit(task, 'comments'))} className="h-6 w-6 shrink-0 text-muted-foreground relative">
-                                    <MessageSquare className="size-4" />
-                                    {commentCount > 0 && (
-                                        <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
-                                    )}
-                                </Button>
-                                <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
-                                    {task.priority}
-                                </Badge>
+                        </CollapsibleTrigger>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing">
+                                <GripVertical className="size-4 text-muted-foreground" />
                             </div>
+                            <Button variant="ghost" size="icon" onClick={(e) => handleButtonClick(e, () => onEdit(task, 'comments'))} className="h-6 w-6 shrink-0 text-muted-foreground relative">
+                                <MessageSquare className="size-4" />
+                                {commentCount > 0 && (
+                                    <Badge variant="destructive" className="absolute -top-1 -right-2 h-4 min-w-[1rem] p-1 justify-center text-xs leading-none">{commentCount}</Badge>
+                                )}
+                            </Button>
+                            <Badge className={cn('whitespace-nowrap', priorityColorMap[task.priority])}>
+                                {task.priority}
+                            </Badge>
                         </div>
-                    </CollapsibleTrigger>
+                    </div>
             )}
             </CardHeader>
-        </div>
+        
         <CollapsibleContent>
           <CardContent className="p-4 pt-0">
             <div className="pl-8 space-y-4">
