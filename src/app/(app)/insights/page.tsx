@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { BrainCircuit, LoaderCircle, BarChart3, AlertTriangle, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -17,28 +17,51 @@ import { Separator } from "@/components/ui/separator";
 export default function InsightsPage() {
     const { user } = useAuth();
     const { toast } = useToast();
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [report, setReport] = useState<GenerateInsightsOutput | null>(null);
 
     const canViewPage = user?.role === 'admin' || user?.role === 'management';
 
-    const handleGenerateReport = async () => {
-        setLoading(true);
-        setReport(null);
-        try {
-            const result = await generateInsights();
-            setReport(result);
-        } catch (error) {
-            console.error("Failed to generate insights:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Could not generate the insights report. Please try again.'
-            });
-        } finally {
+    useEffect(() => {
+        const handleGenerateReport = async () => {
+            setLoading(true);
+            setReport(null);
+            try {
+                const result = await generateInsights();
+                setReport(result);
+            } catch (error) {
+                console.error("Failed to generate insights:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not generate the insights report. Please try again.'
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (canViewPage) {
+            handleGenerateReport();
+        } else {
             setLoading(false);
         }
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canViewPage]);
+    
+    if (loading) {
+      return (
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-muted/40">
+               <div className="max-w-6xl mx-auto">
+                   <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] border-2 border-dashed rounded-lg">
+                      <LoaderCircle className="h-12 w-12 animate-spin text-primary mb-4" />
+                      <p className="text-lg font-semibold text-muted-foreground">Analyzing your projects...</p>
+                      <p className="text-sm text-muted-foreground">This may take a moment.</p>
+                 </div>
+              </div>
+          </main>
+      )
+    }
 
     if (!canViewPage) {
         return (
@@ -62,42 +85,16 @@ export default function InsightsPage() {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-muted/40 flex flex-col">
             <div className="max-w-6xl mx-auto w-full flex flex-col flex-1">
                 <Card className="flex flex-col flex-1">
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader>
                         <div>
                             <CardTitle>Project Insights</CardTitle>
                             <CardDescription>
-                                Generate an AI-powered report on project progress and team performance.
+                                An AI-powered report on project progress and team performance.
                             </CardDescription>
                         </div>
-                         <Button onClick={handleGenerateReport} disabled={loading}>
-                            {loading ? (
-                                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <BrainCircuit className="mr-2 h-4 w-4" />
-                            )}
-                            {loading ? 'Analyzing...' : 'Generate Report'}
-                        </Button>
                     </CardHeader>
                     <CardContent className="flex-1">
-                       {loading && (
-                         <div className="flex flex-col items-center justify-center h-full border-2 border-dashed rounded-lg">
-                            <LoaderCircle className="h-12 w-12 animate-spin text-primary mb-4" />
-                            <p className="text-lg font-semibold text-muted-foreground">Analyzing your projects...</p>
-                            <p className="text-sm text-muted-foreground">This may take a moment.</p>
-                       </div>
-                       )}
-
-                       {!loading && !report && (
-                         <div className="flex flex-col items-center justify-center h-full border-2 border-dashed rounded-lg text-center p-4">
-                            <BarChart3 className="h-12 w-12 text-muted-foreground mb-8" />
-                            <h3 className="text-lg font-semibold mb-2">Welcome to Project Insights</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Click the &quot;Generate Report&quot; button to get a complete analysis of your ongoing projects.
-                            </p>
-                       </div>
-                       )}
-
-                       {!loading && report && (
+                       {report && (
                          <div className="space-y-6 h-full overflow-y-auto">
                             {/* Overall Summary */}
                             <section>
