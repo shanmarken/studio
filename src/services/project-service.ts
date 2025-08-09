@@ -3,22 +3,21 @@ import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { z } from 'zod';
 
-const TaskSchema = z.object({
+export const TaskSchema = z.object({
   id: z.string(),
   name: z.string(),
-  assignedTo: z.string(),
-  status: z.enum(['To Do', 'In Progress', 'Testing', 'Completed', 'Blocked']),
-  percentComplete: z.number(),
+  status: z.string().optional(),
+  assignedTo: z.string().nullable().optional(),
 });
 
-export const ProjectWithTasks = z.object({
+export const ProjectWithTasksSchema = z.object({
   id: z.string(),
   name: z.string(),
-  description: z.string(),
-  ownerId: z.string(),
+  description: z.string().optional(),
   tasks: z.array(TaskSchema),
 });
-export type ProjectWithTasks = z.infer<typeof ProjectWithTasks>;
+export type ProjectWithTasks = z.infer<typeof ProjectWithTasksSchema>;
+
 
 /**
  * Fetches a single project and its associated tasks from Firestore.
@@ -42,56 +41,15 @@ export async function getProjectWithTasks(projectId: string): Promise<ProjectWit
     return {
       id: taskDoc.id,
       name: data.name || 'Untitled Task',
-      assignedTo: data.assignedTo || 'Unassigned',
       status: data.status || 'To Do',
-      percentComplete: data.percentComplete || 0,
-    } as z.infer<typeof TaskSchema>;
+      assignedTo: data.assignedTo || 'Unassigned',
+    };
   });
 
   return {
     id: projectDoc.id,
     name: projectData.name,
     description: projectData.description,
-    ownerId: projectData.ownerId,
     tasks: tasks,
   };
-}
-
-
-/**
- * Fetches all projects and their associated tasks from Firestore.
- * @returns A promise that resolves to an array of projects, each with its tasks.
- */
-export async function getAllProjectsWithTasks(): Promise<ProjectWithTasks[]> {
-  const projectsRef = collection(db, 'projects');
-  const projectsSnapshot = await getDocs(projectsRef);
-
-  const allProjects = await Promise.all(
-    projectsSnapshot.docs.map(async (projectDoc) => {
-      const projectData = projectDoc.data();
-      const tasksRef = collection(db, 'projects', projectDoc.id, 'tasks');
-      const tasksSnapshot = await getDocs(tasksRef);
-      
-      const tasks = tasksSnapshot.docs.map((taskDoc) => {
-        const data = taskDoc.data();
-        return {
-          id: taskDoc.id,
-          name: data.name || 'Untitled Task',
-          assignedTo: data.assignedTo || 'Unassigned',
-          status: data.status || 'To Do',
-          percentComplete: data.percentComplete || 0,
-        } as z.infer<typeof TaskSchema>;
-      });
-
-      return {
-        id: projectDoc.id,
-        name: projectData.name,
-        description: projectData.description,
-        ownerId: projectData.ownerId,
-        tasks: tasks,
-      };
-    })
-  );
-
-  return allProjects;
 }
