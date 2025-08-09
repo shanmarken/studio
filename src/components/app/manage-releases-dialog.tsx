@@ -30,6 +30,17 @@ import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const releaseSchema = z.object({
   name: z.string().min(1, { message: 'Release name is required.' }),
@@ -75,9 +86,6 @@ export function ManageReleasesDialog({ isOpen, onOpenChange, projectId, releases
   };
 
   const handleDeleteRelease = async (releaseId: string, releaseName: string) => {
-    if (!window.confirm(`Are you sure you want to delete the release "${releaseName}"? This action cannot be undone.`)) {
-        return;
-    }
     try {
         const releaseRef = doc(db, 'projects', projectId, 'releases', releaseId);
         await deleteDoc(releaseRef);
@@ -107,9 +115,29 @@ export function ManageReleasesDialog({ isOpen, onOpenChange, projectId, releases
                             <div key={release.id}>
                                 <div className="flex items-center justify-between p-2">
                                     <span className="text-sm">{release.name}</span>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteRelease(release.id, release.name)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently delete the release "{release.name}" and all of its associated tasks.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            className="bg-destructive hover:bg-destructive/90"
+                                            onClick={() => handleDeleteRelease(release.id, release.name)}>
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
                                 </div>
                                 {index < releases.length - 1 && <Separator />}
                             </div>
