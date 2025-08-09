@@ -1,7 +1,6 @@
 
-import { collection, getDocs, doc, collectionGroup } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Task } from '@/lib/types';
 import { z } from 'zod';
 
 const TaskSchema = z.object({
@@ -29,6 +28,44 @@ export const ProjectWithTasks = z.object({
   tasks: z.array(TaskSchema),
 });
 export type ProjectWithTasks = z.infer<typeof ProjectWithTasks>;
+
+/**
+ * Fetches a single project and its associated tasks from Firestore.
+ * @param projectId The ID of the project to fetch.
+ * @returns A promise that resolves to the project with its tasks, or null if not found.
+ */
+export async function getProjectWithTasks(projectId: string): Promise<ProjectWithTasks | null> {
+  const projectRef = doc(db, 'projects', projectId);
+  const projectDoc = await getDoc(projectRef);
+
+  if (!projectDoc.exists()) {
+    return null;
+  }
+
+  const projectData = projectDoc.data();
+  const tasksRef = collection(db, 'projects', projectId, 'tasks');
+  const tasksSnapshot = await getDocs(tasksRef);
+  
+  const tasks = tasksSnapshot.docs.map((taskDoc) => {
+    const data = taskDoc.data();
+    return {
+      ...data,
+      id: taskDoc.id,
+      startDate: new Date(data.startDate).toISOString(),
+      endDate: new Date(data.endDate).toISOString(),
+      status: data.status,
+    } as z.infer<typeof TaskSchema>;
+  });
+
+  return {
+    id: projectDoc.id,
+    name: projectData.name,
+    description: projectData.description,
+    ownerId: projectData.ownerId,
+    tasks: tasks,
+  };
+}
+
 
 /**
  * Fetches all projects and their associated tasks from Firestore.

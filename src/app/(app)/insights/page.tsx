@@ -9,60 +9,64 @@ import { BrainCircuit, LoaderCircle, BarChart3, AlertTriangle, UserCheck } from 
 import { useToast } from "@/hooks/use-toast";
 import { generateInsights, GenerateInsightsOutput } from "@/ai/flows/generate-insights";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
+import Link from "next/link";
+import { collection, query, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface Project {
+  id: string;
+  name: string;
+}
 
 export default function InsightsPage() {
     const { user } = useAuth();
     const { toast } = useToast();
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [report, setReport] = useState<GenerateInsightsOutput | null>(null);
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
     const canViewPage = user?.role === 'admin' || user?.role === 'management';
 
     useEffect(() => {
-        const handleGenerateReport = async () => {
-            setLoading(true);
-            setReport(null);
-            try {
-                const result = await generateInsights();
-                setReport(result);
-            } catch (error) {
-                console.error("Failed to generate insights:", error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: 'Could not generate the insights report. Please try again.'
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
+        if (!canViewPage) return;
 
-        if (canViewPage) {
-            handleGenerateReport();
-        } else {
+        const projectsQuery = query(collection(db, 'projects'));
+        const unsubscribe = onSnapshot(projectsQuery, (snapshot) => {
+            setProjects(snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name })));
+        });
+
+        return () => unsubscribe();
+    }, [canViewPage]);
+
+    const handleGenerateReport = async () => {
+        if (!selectedProjectId) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Please select a project to analyze.'
+            });
+            return;
+        }
+        setLoading(true);
+        setReport(null);
+        try {
+            const result = await generateInsights(selectedProjectId);
+            setReport(result);
+        } catch (error) {
+            console.error("Failed to generate insights:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not generate the insights report. Please try again.'
+            });
+        } finally {
             setLoading(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [canViewPage]);
+    };
     
-    if (loading) {
-      return (
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-muted/40">
-               <div className="max-w-6xl mx-auto">
-                   <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] border-2 border-dashed rounded-lg">
-                      <LoaderCircle className="h-12 w-12 animate-spin text-primary mb-4" />
-                      <p className="text-lg font-semibold text-muted-foreground">Analyzing your projects...</p>
-                      <p className="text-sm text-muted-foreground">This may take a moment.</p>
-                 </div>
-              </div>
-          </main>
-      )
-    }
-
     if (!canViewPage) {
         return (
             <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-muted/40">
@@ -89,14 +93,46 @@ export default function InsightsPage() {
                         <div>
                             <CardTitle>Project Insights</CardTitle>
                             <CardDescription>
-                                An AI-powered report on project progress and team performance.
+                                Select a project and generate an AI-powered report on its progress and team performance.
                             </CardDescription>
+                        </div>
+                         <div className="flex items-center gap-4 mt-4">
+                            <Select onValueChange={setSelectedProjectId} value={selectedProjectId || ''}>
+                                <SelectTrigger className="w-[280px]">
+                                    <SelectValue placeholder="Select a project" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <Button onClick={handleGenerateReport} disabled={loading || !selectedProjectId}>
+                                {loading ? (
+                                    <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Analyzing...</>
+                                ) : (
+                                    <><BarChart3 className="mr-2 h-4 w-4" /> Generate Insights</>
+                                )}
+                            </Button>
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1">
+                       {loading && (
+                           <div className="flex flex-col items-center justify-center h-full border-2 border-dashed rounded-lg">
+                              <LoaderCircle className="h-12 w-12 animate-spin text-primary mb-4" />
+                              <p className="text-lg font-semibold text-muted-foreground">Analyzing your project...</p>
+                              <p className="text-sm text-muted-foreground">This may take a moment.</p>
+                         </div>
+                       )}
+                       {!loading && !report && (
+                           <div className="flex flex-col items-center justify-center h-full border-2 border-dashed rounded-lg text-center p-4">
+                              <BrainCircuit className="h-12 w-12 text-muted-foreground mb-4" />
+                              <h3 className="font-semibold text-lg">Ready for Analysis</h3>
+                              <p className="text-sm text-muted-foreground">
+                                  Select a project from the dropdown above and click "Generate Insights" to get started.
+                              </p>
+                           </div>
+                       )}
                        {report && (
                          <div className="space-y-6 h-full overflow-y-auto">
-                            {/* Overall Summary */}
                             <section>
                                 <h2 className="text-xl font-bold tracking-tight mb-2">Overall Summary</h2>
                                 <Alert>
@@ -110,7 +146,6 @@ export default function InsightsPage() {
 
                             <Separator />
 
-                            {/* At-Risk Projects */}
                             <section>
                                  <h2 className="text-xl font-bold tracking-tight mb-2">At-Risk Projects</h2>
                                  {report.atRiskProjects.length > 0 ? (
@@ -143,7 +178,7 @@ export default function InsightsPage() {
                                         <UserCheck className="h-4 w-4" />
                                         <AlertTitle>All Clear!</AlertTitle>
                                         <AlertDescription>
-                                            No projects are currently identified as high-risk. Great job!
+                                            No high-risk items identified in this project. Great job!
                                         </AlertDescription>
                                     </Alert>
                                  )}
@@ -151,7 +186,6 @@ export default function InsightsPage() {
                             
                             <Separator />
 
-                            {/* Team Performance */}
                             <section>
                                  <h2 className="text-xl font-bold tracking-tight mb-2">Team Performance</h2>
                                  <div className="rounded-md border">
@@ -181,7 +215,6 @@ export default function InsightsPage() {
                                     </div>
                                  </div>
                             </section>
-
                          </div>
                        )}
                     </CardContent>
