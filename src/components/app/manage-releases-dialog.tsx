@@ -150,7 +150,7 @@ export function ManageReleasesDialog({ isOpen, onOpenChange, projectId, releases
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Release Name</FormLabel>
-                        <FormControl><Input {...field} placeholder="e.g. MVP 2" /></FormControl>
+                        <FormControl><Input {...field} placeholder="e.g. V2.1 Sprint 4" /></FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
@@ -175,3 +175,5 @@ export function ManageReleasesDialog({ isOpen, onOpenChange, projectId, releases
     </Dialog>
   );
 }
+
+    

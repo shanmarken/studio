@@ -642,3 +642,5 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
     </Dialog>
   );
 }
+
+    

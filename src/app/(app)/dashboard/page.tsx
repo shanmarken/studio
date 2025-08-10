@@ -4,12 +4,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect, useMemo } from "react";
-import { LoaderCircle, BarChart3, ListTodo, AlertTriangle, CheckCircle2, Sigma } from "lucide-react";
+import { LoaderCircle, BarChart3, ListTodo, AlertTriangle, CheckCircle2, Sigma, GitBranch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, query, onSnapshot, doc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, getDoc, getDocs, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Task, Status } from "@/lib/types";
+import { Task, Status, Release } from "@/lib/types";
 import { isAfter } from 'date-fns';
 import {
   Bar,
@@ -38,6 +38,8 @@ export default function DashboardPage() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [tasks, setTasks] = useState<ProjectTask[]>([]);
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+    const [releases, setReleases] = useState<Release[]>([]);
+    const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(null);
 
     const canViewPage = user?.role === 'admin' || user?.role === 'management';
 
@@ -52,14 +54,38 @@ export default function DashboardPage() {
         return () => unsubscribe();
     }, [canViewPage]);
 
-     useEffect(() => {
+    useEffect(() => {
         if (!selectedProjectId) {
+            setReleases([]);
+            setSelectedReleaseId(null);
+            return;
+        }
+
+        const releasesQuery = query(collection(db, 'projects', selectedProjectId, 'releases'), orderBy('createdAt', 'desc'));
+        const unsubscribe = onSnapshot(releasesQuery, (snapshot) => {
+            const releasesData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Release));
+            setReleases(releasesData);
+            if (releasesData.length > 0) {
+                setSelectedReleaseId(releasesData[0].id);
+            } else {
+                setSelectedReleaseId(null);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [selectedProjectId]);
+
+     useEffect(() => {
+        if (!selectedProjectId || !selectedReleaseId) {
             setTasks([]);
             return;
         }
 
         setLoading(true);
-        const tasksQuery = query(collection(db, 'projects', selectedProjectId, 'tasks'));
+        const tasksQuery = query(
+            collection(db, 'projects', selectedProjectId, 'tasks'),
+            where('releaseId', '==', selectedReleaseId)
+        );
         
         const unsubscribe = onSnapshot(tasksQuery, (snapshot) => {
             const fetchedTasks = snapshot.docs.map(doc => ({
@@ -82,7 +108,7 @@ export default function DashboardPage() {
         });
 
         return () => unsubscribe();
-    }, [selectedProjectId, toast]);
+    }, [selectedProjectId, selectedReleaseId, toast]);
 
 
     const projectMetrics = useMemo(() => {
@@ -147,17 +173,28 @@ export default function DashboardPage() {
                             <div>
                                 <CardTitle>Project Dashboard</CardTitle>
                                 <CardDescription>
-                                    Select a project for a real-time 360° view of its status.
+                                    Select a project and release for a real-time 360° view of its status.
                                 </CardDescription>
                             </div>
-                            <Select onValueChange={setSelectedProjectId} value={selectedProjectId || ''}>
-                                <SelectTrigger className="w-[280px]">
-                                    <SelectValue placeholder="Select a project" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            <div className="flex gap-2">
+                                <Select onValueChange={setSelectedProjectId} value={selectedProjectId || ''}>
+                                    <SelectTrigger className="w-[220px]">
+                                        <SelectValue placeholder="Select a project" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <Select onValueChange={setSelectedReleaseId} value={selectedReleaseId || ''} disabled={!selectedProjectId}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <GitBranch className="mr-2 h-4 w-4" />
+                                        <SelectValue placeholder="Select a release" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {releases.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1">
@@ -176,7 +213,16 @@ export default function DashboardPage() {
                               </p>
                            </div>
                        )}
-                        {!loading && selectedProjectId && (
+                       {!loading && selectedProjectId && !selectedReleaseId && (
+                            <div className="flex flex-col items-center justify-center h-full border-2 border-dashed rounded-lg text-center p-4">
+                              <GitBranch className="h-12 w-12 text-muted-foreground mb-4" />
+                              <h3 className="font-semibold text-lg">No Release Selected</h3>
+                              <p className="text-sm text-muted-foreground">
+                                  This project has no releases or none are selected.
+                              </p>
+                           </div>
+                       )}
+                        {!loading && selectedProjectId && selectedReleaseId && (
                          <div className="space-y-6 h-full overflow-y-auto">
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                                <Card>
@@ -264,3 +310,5 @@ export default function DashboardPage() {
         </main>
     );
 }
+
+    

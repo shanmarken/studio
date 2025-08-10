@@ -161,13 +161,11 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                 </div>
 
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    {task.projectName ? (
+                    {task.projectName && (
                         <div className="flex items-center gap-2">
                           <Folder className="h-4 w-4" />
                           <span className="font-medium">{task.projectName}</span>
                         </div>
-                    ) : (
-                        <div/>
                     )}
                     {task.releaseName && (
                       <div className="flex items-center gap-1.5">
@@ -245,3 +243,5 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
     </Collapsible>
   );
 }
+
+    

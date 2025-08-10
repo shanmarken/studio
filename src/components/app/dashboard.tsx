@@ -174,6 +174,10 @@ export default function Dashboard({ projectId }: DashboardProps) {
         toast({ variant: 'destructive', title: "Error", description: "Project ID is missing." });
         return;
     }
+    if (!task.releaseId) {
+        toast({ variant: 'destructive', title: "Error", description: "Release ID is missing. Please select a release." });
+        return;
+    }
 
     if (task.subTasks && task.subTasks.length > 0) {
         const completedCount = task.subTasks.filter(st => st.completed).length;
@@ -192,7 +196,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
         dependencies: task.dependencies || '',
         notes: task.notes || '',
         comments: task.comments?.map(c => ({...c, createdAt: c.createdAt.toISOString()})) || [],
-        releaseId: selectedRelease
     };
     
     delete taskData.id;
@@ -478,3 +481,5 @@ export default function Dashboard({ projectId }: DashboardProps) {
     </div>
   );
 }
+
+    
