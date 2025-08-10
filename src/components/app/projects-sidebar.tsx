@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { ProjectPulseLogo } from './project-pulse-logo';
 import { Button } from '../ui/button';
-import { LogOut, Settings, FolderKanban, PanelLeft, User, Building, ClipboardList, Calendar, BarChart3 } from 'lucide-react';
+import { LogOut, Settings, FolderKanban, PanelLeft, User, Building, ClipboardList, Calendar, BarChart3, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { auth } from '@/lib/firebase';
 import { UserAvatar } from './user-avatar';
@@ -56,6 +56,16 @@ export function ProjectsSidebar() {
                     </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
+             {(user?.role === 'admin' || user?.role === 'management') && (
+              <SidebarMenuItem>
+                   <Link href="/dashboard" className="block w-full">
+                      <SidebarMenuButton tooltip="Dashboard" isActive={pathname.includes('/dashboard')}>
+                          <LayoutDashboard />
+                          <span>Dashboard</span>
+                      </SidebarMenuButton>
+                  </Link>
+              </SidebarMenuItem>
+            )}
             <SidebarMenuItem>
                  <Link href="/mytasks" className="block w-full">
                     <SidebarMenuButton tooltip="My Tasks" isActive={pathname.includes('/mytasks')}>
@@ -72,16 +82,6 @@ export function ProjectsSidebar() {
                     </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
-            {(user?.role === 'admin' || user?.role === 'management') && (
-              <SidebarMenuItem>
-                   <Link href="/insights" className="block w-full">
-                      <SidebarMenuButton tooltip="Insights" isActive={pathname.includes('/insights')}>
-                          <BarChart3 />
-                          <span>Insights</span>
-                      </SidebarMenuButton>
-                  </Link>
-              </SidebarMenuItem>
-            )}
              <SidebarMenuItem>
                 <Link href="/settings" className="block w-full">
                     <SidebarMenuButton tooltip="Settings" isActive={pathname.includes('/settings')}>
