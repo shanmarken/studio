@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, getDocs, collectionGroup, getDoc, onSnapshot, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, getDocs, collectionGroup, getDoc, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Task, Status } from '@/lib/types';
@@ -66,13 +66,13 @@ export function CalendarView() {
 
 
    useEffect(() => {
-    if (!user) {
+    if (!user?.uid) {
         setLoading(false);
         return;
     };
     setLoading(true);
     
-    const tasksQuery = collectionGroup(db, 'tasks');
+    const tasksQuery = query(collectionGroup(db, 'tasks'), where('assignedToId', '==', user.uid));
     const unsubscribe = onSnapshot(tasksQuery, async (tasksSnapshot) => {
         const tasksData = await Promise.all(
             tasksSnapshot.docs.map(async (taskDoc) => {
