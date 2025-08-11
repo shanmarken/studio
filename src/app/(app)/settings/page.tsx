@@ -13,11 +13,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { TeamMembersTable } from "@/components/app/team-members-table";
 import { useAuth } from "@/hooks/use-auth";
-import { Calendar, UserPlus } from "lucide-react";
+import { Calendar, UserPlus, Edit, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { InviteUserDialog } from "@/components/app/invite-user-dialog";
 import { Badge } from "@/components/ui/badge";
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { LoaderCircle } from 'lucide-react';
 
@@ -35,6 +35,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   const form = useForm<CompanyProfileFormValues>({
     resolver: zodResolver(companyProfileSchema),
@@ -58,24 +59,24 @@ export default function SettingsPage() {
     return () => unsubscribe();
   }, [form, companyProfileRef]);
 
-  useEffect(() => {
-    const subscription = form.watch((value, { name, type }) => {
-      if (type === 'change' && user?.role === 'admin') {
-        const fieldName = name as keyof CompanyProfileFormValues;
-        const fieldValue = value[fieldName];
+  const onSubmit = async (values: CompanyProfileFormValues) => {
+    try {
+        await setDoc(companyProfileRef, values);
+        toast({ title: 'Success', description: 'Company profile has been updated.' });
+        setIsEditing(false);
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        toast({ variant: 'destructive', title: "Error", description: "Failed to save profile." });
+    }
+  }
 
-        if (fieldValue !== undefined) {
-           setDoc(companyProfileRef, { [fieldName]: fieldValue }, { merge: true })
-             .catch(error => {
-                console.error("Error updating profile:", error);
-                toast({ variant: 'destructive', title: "Error", description: "Failed to save profile."});
-             });
-        }
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form, user, companyProfileRef, toast]);
-
+  const handleCancel = async () => {
+    const docSnap = await getDoc(companyProfileRef);
+    if (docSnap.exists()) {
+        form.reset(docSnap.data());
+    }
+    setIsEditing(false);
+  }
 
   function handleConnectCalendar() {
     toast({
@@ -96,22 +97,42 @@ export default function SettingsPage() {
                     <TabsTrigger value="integrations">Integrations</TabsTrigger>
                 </TabsList>
                  <TabsContent value="profile" className="mt-4">
-                    <Card>
-                    <CardHeader>
-                        <CardTitle>Company Profile</CardTitle>
-                        <CardDescription>
-                          {isAdmin ? "Update your company's information. Changes are saved automatically." : "View your company's information."}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                       {loadingProfile ? (
-                            <div className="flex items-center justify-center p-8">
-                                <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-                            </div>
-                       ) : (
-                        <Form {...form}>
-                            <form className="space-y-6">
-                                <fieldset disabled={!isAdmin}>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)}>
+                            <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle>Company Profile</CardTitle>
+                                    <CardDescription>
+                                        {isAdmin ? (isEditing ? "You are currently editing the company profile." : "View or edit your company's information.") : "View your company's information."}
+                                    </CardDescription>
+                                </div>
+                                {isAdmin && (
+                                    <div className="flex gap-2">
+                                        {isEditing ? (
+                                            <>
+                                                <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                                                <Button type="submit">
+                                                    <Save className="mr-2" />
+                                                    Save Changes
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button type="button" onClick={() => setIsEditing(true)}>
+                                                <Edit className="mr-2" />
+                                                Edit
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
+                            </CardHeader>
+                            <CardContent>
+                            {loadingProfile ? (
+                                    <div className="flex items-center justify-center p-8">
+                                        <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+                                    </div>
+                            ) : (
+                                <fieldset disabled={!isEditing && isAdmin} className="space-y-6">
                                     <FormField
                                         control={form.control}
                                         name="companyName"
@@ -119,7 +140,7 @@ export default function SettingsPage() {
                                             <FormItem>
                                                 <FormLabel>Company Name</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="e.g. Acme Inc." {...field} />
+                                                    <Input placeholder="e.g. Acme Inc." {...field} readOnly={!isEditing}/>
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -132,7 +153,7 @@ export default function SettingsPage() {
                                             <FormItem>
                                                 <FormLabel>Website</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="https://example.com" {...field} />
+                                                    <Input placeholder="https://example.com" {...field} readOnly={!isEditing}/>
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -145,7 +166,7 @@ export default function SettingsPage() {
                                             <FormItem>
                                                 <FormLabel>Address</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="123 Main St, Anytown, USA" {...field} />
+                                                    <Input placeholder="123 Main St, Anytown, USA" {...field} readOnly={!isEditing}/>
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -162,6 +183,7 @@ export default function SettingsPage() {
                                                     placeholder="Tell us a little about your company"
                                                     className="resize-none"
                                                     {...field}
+                                                    readOnly={!isEditing}
                                                     />
                                                 </FormControl>
                                                 <FormMessage />
@@ -169,17 +191,20 @@ export default function SettingsPage() {
                                         )}
                                     />
                                 </fieldset>
-                            </form>
-                        </Form>
-                       )}
-                    </CardContent>
-                    </Card>
+                            )}
+                            </CardContent>
+                            </Card>
+                        </form>
+                    </Form>
                 </TabsContent>
                 {isAdmin && (
                     <TabsContent value="team" className="mt-4">
                         <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle>Your Team</CardTitle>
+                            <div>
+                                <CardTitle>Your Team</CardTitle>
+                                <CardDescription>Manage team members and their roles.</CardDescription>
+                            </div>
                             <Button onClick={() => setIsInviteDialogOpen(true)}>
                                 <UserPlus className="mr-2 h-4 w-4" />
                                 Invite User
