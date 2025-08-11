@@ -75,11 +75,12 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
                         checked={isDone}
                         onCheckedChange={(checked) => onCompleteToggle(task.id, !!checked)}
                         className="mt-1"
+                        disabled={hasSubtasks}
                         />
                         <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
                             <CollapsibleTrigger asChild>
                                 <div className="flex-1 text-left min-w-0 cursor-pointer">
-                                    <label htmlFor={`task-${task.id}`} className={cn("font-semibold cursor-pointer")}>{task.name}</label>
+                                    <label htmlFor={`task-${task.id}`} className={cn("font-semibold cursor-pointer", hasSubtasks && "cursor-default")}>{task.name}</label>
                                 </div>
                             </CollapsibleTrigger>
                             <div className="flex items-center">
@@ -243,5 +244,3 @@ export function TaskCard({ task, onEdit, onSuggest, onDelete, onPromote, onCompl
     </Collapsible>
   );
 }
-
-    

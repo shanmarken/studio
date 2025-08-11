@@ -308,6 +308,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
 
   const commentCount = form.watch('comments')?.length || 0;
   const attachmentCount = form.watch('attachments')?.length || 0;
+  const hasSubtasks = (form.watch('subTasks')?.length || 0) > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -482,7 +483,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
                               step={5}
                               defaultValue={[field.value]}
                               onValueChange={(value) => field.onChange(value[0])}
-                              disabled={!!form.watch('subTasks')?.length}
+                              disabled={hasSubtasks}
                             />
                           </FormControl>
                         </FormItem>
@@ -642,5 +643,3 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
     </Dialog>
   );
 }
-
-    
