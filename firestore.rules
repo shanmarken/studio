@@ -1,9 +1,28 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to all documents for any authenticated user
-    match /{document=**} {
+
+    // Allow logged-in users to read and write to their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow admins to read all user documents
+    match /users/{userId} {
+      allow get, list: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Allow all authenticated users to read the company profile
+    match /companyProfile/{docId} {
+      allow read: if request.auth != null;
+      // Allow only admins to write to the company profile
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Rules for projects and their subcollections (tasks, releases)
+    match /projects/{projectId}/{document=**} {
       allow read, write: if request.auth != null;
     }
   }
