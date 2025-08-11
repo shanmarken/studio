@@ -4,26 +4,49 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow logged-in users to read and write to their own user document
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Helper function to check if a user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Allow admins to read all user documents
-    match /users/{userId} {
-      allow get, list: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    // Helper function to check if the requesting user is the owner of a document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
-    // Allow all authenticated users to read the company profile
+    // Users can only read/update their own user document
+    match /users/{userId} {
+      allow read, update: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn();
+    }
+
+    // Allow authenticated users to read company profile
     match /companyProfile/{docId} {
-      allow read: if request.auth != null;
-      // Allow only admins to write to the company profile
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        allow read: if isSignedIn();
+        allow write: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Rules for projects and their subcollections (tasks, releases)
-    match /projects/{projectId}/{document=**} {
-      allow read, write: if request.auth != null;
+    // Allow read/write access to projects for any authenticated user
+    // In a production app, you would likely restrict write access to project members/owners
+    match /projects/{projectId} {
+      allow read, write: if isSignedIn();
+
+      // For tasks as a subcollection of projects
+      match /tasks/{taskId} {
+        allow read, write: if isSignedIn();
+      }
+      
+      // For releases as a subcollection of projects
+      match /releases/{releaseId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+    
+    // This rule is required for the cross-project "My Tasks" and "Calendar" queries.
+    // It allows a user to read from any document in the "tasks" collection group
+    // IF their user ID matches the 'assignedToId' field on that task document.
+    match /{path=**}/tasks/{taskId} {
+      allow read: if isSignedIn() && resource.data.assignedToId == request.auth.uid;
     }
   }
 }
