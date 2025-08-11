@@ -164,13 +164,6 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
         setTeamMembers(userList);
     };
     const fetchProjects = async () => {
-        if (projectId) {
-            const projectDoc = await getDocs(query(collection(db, 'projects'), where('__name__', '==', projectId)));
-            if (!projectDoc.empty) {
-                setProjects([{ value: projectDoc.docs[0].id, label: projectDoc.docs[0].data().name }]);
-            }
-            return;
-        }
         const projectsRef = collection(db, 'projects');
         const projectsSnap = await getDocs(projectsRef);
         const projectList = projectsSnap.docs.map(doc => ({
@@ -184,7 +177,7 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
         fetchProjects();
         setActiveTab(defaultTab);
     }
-  }, [isOpen, defaultTab, projectId]);
+  }, [isOpen, defaultTab]);
   
   useEffect(() => {
     if (selectedProjectId) {
@@ -339,7 +332,10 @@ export function TaskDialog({ isOpen, onOpenChange, onSave, taskToEdit, tasks, de
                             <Combobox
                               options={projects}
                               value={field.value}
-                              onChange={field.onChange}
+                              onChange={(value) => {
+                                field.onChange(value);
+                                form.setValue('releaseId', ''); // Reset release when project changes
+                              }}
                               placeholder="Select project"
                               searchPlaceholder="Search projects..."
                               noResultsText="No projects found."
