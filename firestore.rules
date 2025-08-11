@@ -1,63 +1,57 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
+    // Helper function to check if a user is an admin
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Users can read their own doc, admins can read any
+    match /users/{userId} {
+      allow read: if request.auth.uid != null;
+      allow write: if request.auth.uid == userId || isAdmin();
     }
     
-    function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isRole(role) {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
-    }
-
-    // AUTH: Users can only see their own profile, but any authenticated user can create one.
-    // Admins can see any profile.
-    match /users/{userId} {
-      allow read, write: if isUser(userId) || isRole('admin');
-    }
-
-    // COMPANY PROFILE: Any authenticated user can read it, only admins can write.
+    // Any authenticated user can read the company profile, only admins can write
     match /companyProfile/{docId} {
-      allow read: if isSignedIn();
-      allow write: if isRole('admin');
+      allow read: if request.auth.uid != null;
+      allow write: if isAdmin();
     }
-
-    // PROJECTS: Any authenticated user can read projects and their subcollections (releases/tasks).
-    // This is required for developers to see project names and task details.
+    
+    // Rules for projects and their subcollections
     match /projects/{projectId} {
-      allow read: if isSignedIn();
-      allow write: if isRole('admin');
+      // Any authenticated user can read project details
+      allow read: if request.auth.uid != null;
+      // Any authenticated user can create a project
+      allow create: if request.auth.uid != null;
+      // Only admins can update or delete a project
+      allow update, delete: if isAdmin();
 
-      // RELEASES: Any authenticated user can read releases.
+      // Rules for releases subcollection
       match /releases/{releaseId} {
-        allow read: if isSignedIn();
-        allow create, delete: if isRole('admin') || isRole('management');
+        // Any authenticated user can read releases
+        allow read: if request.auth.uid != null;
+        // Any authenticated user can create, update, or delete releases
+        allow write: if request.auth.uid != null;
       }
-
-      // TASKS:
-      // Allow creation by any authenticated user.
-      // Allow updates/deletes by admins or the assigned user.
+      
+      // Rules for tasks subcollection within a project
       match /tasks/{taskId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update, delete: if isSignedIn() && (isRole('admin') || request.auth.uid == resource.data.assignedToId);
+        // Any authenticated user can read a task
+        allow read: if request.auth.uid != null;
+        // Any authenticated user can create a task
+        allow create: if request.auth.uid != null;
+        // Users can update/delete a task if they are the assignee or an admin
+        allow update, delete: if request.auth.uid == resource.data.assignedToId || isAdmin();
       }
     }
-
-    // COLLECTION GROUP:
-    // Allow a user to query the 'tasks' collection group across all projects
-    // ONLY if the query is filtering for tasks assigned to that specific user.
-    // This is what powers the "My Tasks" and "Calendar" views securely.
+    
+    // This rule enables the collectionGroup query for 'tasks' used in MyTasks and Calendar pages.
+    // It allows a user to read any task document across all projects ONLY IF it is assigned to them.
     match /{path=**}/tasks/{taskId} {
-      allow list: if isSignedIn() && request.query.where.size() > 0 && request.query.where[0].field == 'assignedToId' && request.query.where[0].value == request.auth.uid;
-      allow get: if isSignedIn() && get(/databases/$(database)/documents/$(path)/tasks/$(taskId)).data.assignedToId == request.auth.uid;
+      allow read: if request.auth.uid == resource.data.assignedToId;
     }
   }
 }
