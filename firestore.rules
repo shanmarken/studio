@@ -1,38 +1,47 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Allow users to read their own user document and admins to read any.
-    match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
     
-    // Allow any authenticated user to read the company profile
-    // Only admins can write to it.
-    match /companyProfile/{docId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    // Helper function to check if a user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Rules for projects and their subcollections
+    // Projects: Authenticated users can read. Admins or owners can write.
     match /projects/{projectId} {
-      allow read, create, update: if request.auth != null;
-      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || resource.data.ownerId == request.auth.uid);
 
-      // Releases and Tasks are handled by the collection group rule below for reads,
-      // but writes need to be handled here.
-      match /{subcollection}/{docId} {
-        allow write: if request.auth != null;
+      // Tasks (direct access within a project): Authenticated users can read/write.
+      match /tasks/{taskId} {
+        allow read, write: if isAuthenticated();
+      }
+      
+      // Releases (direct access within a project): Authenticated users can read/write.
+      match /releases/{releaseId} {
+        allow read, write: if isAuthenticated();
       }
     }
 
-    // This rule allows a user to query the 'tasks' collection group.
-    // They can only read a task if their UID matches the task's assignedToId field.
+    // Task Collection Group Queries: This is the critical rule for My Tasks & Calendar.
+    // It allows a user to perform a query across all tasks, but ONLY if they are
+    // specifically querying for tasks assigned to themselves.
     match /{path=**}/tasks/{taskId} {
-      allow read: if request.auth != null && resource.data.assignedToId == request.auth.uid;
+       allow list: if isAuthenticated() && request.query.where[0][1] == "assignedToId" && request.query.where[0][2] == request.auth.uid;
+       allow get: if isAuthenticated() && request.auth.uid == get(/databases/$(database)/documents/$(path)/tasks/$(taskId)).data.assignedToId;
+    }
+    
+    // Users: Can read any profile, but only write to their own. Admins can write to any.
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Company Profile: Readable by all, writable only by admins.
+    match /companyProfile/{profileId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }
