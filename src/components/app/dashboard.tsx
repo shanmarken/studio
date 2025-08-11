@@ -21,6 +21,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { ManageReleasesDialog } from './manage-releases-dialog';
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DroppableColumn } from './dnd/droppable-column';
+import { DraggableTaskCard } from './dnd/draggable-task-card';
+import { TaskCard } from './task-card';
 
 interface DashboardProps {
   projectId: string;
@@ -273,15 +278,28 @@ export default function Dashboard({ projectId }: DashboardProps) {
     if (!task) return;
 
     const taskRef = doc(db, 'projects', projectId, 'tasks', taskId);
-    let updateData: Partial<Task> = {};
+    let newStatus = task.status;
+    let newPercent = task.percentComplete;
+    
     if (isComplete) {
-      updateData = { status: 'Testing', percentComplete: 100 };
+        newStatus = task.subTasks && task.subTasks.length > 0 ? 'Testing' : 'Completed';
+        newPercent = 100;
     } else {
-      const newPercent = (task.subTasks && task.subTasks.length > 0) ? task.percentComplete : 0;
-      updateData = { status: 'In Progress', percentComplete: newPercent };
+        newStatus = 'In Progress';
+        newPercent = 0;
     }
-    await updateDoc(taskRef, updateData);
-  }
+
+    try {
+        await updateDoc(taskRef, { status: newStatus, percentComplete: newPercent });
+    } catch (error) {
+        console.error("Error updating task status:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to update task status.'
+        });
+    }
+}
 
   const handleSubTaskToggle = async (taskId: string, subTaskId: string, isComplete: boolean) => {
     const task = tasks.find(t => t.id === taskId);
@@ -293,13 +311,13 @@ export default function Dashboard({ projectId }: DashboardProps) {
 
     const completedCount = updatedSubTasks.filter(st => st.completed).length;
     const totalCount = updatedSubTasks.length;
-    const newPercentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : task.percentComplete;
+    const newPercentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
     
     let newStatus = task.status;
     if (totalCount > 0) {
         if (newPercentComplete === 100) {
           newStatus = 'Testing';
-        } else if (newPercentComplete > 0 && task.status !== 'Blocked') {
+        } else if (newPercentComplete > 0 && task.status !== 'Blocked' && task.status !== 'In Progress') {
           newStatus = 'In Progress';
         } else if (newPercentComplete === 0 && (task.status === 'Completed' || task.status === 'Testing')) {
           newStatus = 'In Progress';
@@ -307,11 +325,20 @@ export default function Dashboard({ projectId }: DashboardProps) {
     }
     
     const taskRef = doc(db, 'projects', projectId, 'tasks', taskId);
-    await updateDoc(taskRef, {
-        subTasks: updatedSubTasks,
-        percentComplete: newPercentComplete,
-        status: newStatus
-    });
+    try {
+        await updateDoc(taskRef, {
+            subTasks: updatedSubTasks,
+            percentComplete: newPercentComplete,
+            status: newStatus
+        });
+    } catch (error) {
+         console.error("Error updating subtask:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to update sub-task.'
+        });
+    }
   };
 
   const toggleColumnCollapse = (phase: string) => {
@@ -337,6 +364,51 @@ export default function Dashboard({ projectId }: DashboardProps) {
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete release.' });
     }
   }
+  
+   const tasksByPhase = useMemo(() => {
+    return filteredTasks.reduce((acc, task) => {
+        const phase = task.phase;
+        if (!acc[phase]) {
+            acc[phase] = [];
+        }
+        acc[phase].push(task);
+        return acc;
+    }, {} as Record<string, Task[]>);
+  }, [filteredTasks]);
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+        return;
+    }
+
+    const activeTask = tasks.find(t => t.id === active.id);
+    const overColumnPhase = over.id as string;
+    
+    if (activeTask && activeTask.phase !== overColumnPhase) {
+        // Optimistic UI update
+        const updatedTasks = tasks.map(t => t.id === active.id ? { ...t, phase: overColumnPhase, status: 'To Do' as Status } : t);
+        setTasks(updatedTasks);
+        
+        try {
+            const taskRef = doc(db, 'projects', activeTask.projectId!, activeTask.id);
+            await updateDoc(taskRef, { phase: overColumnPhase, status: 'To Do' });
+            toast({
+                title: 'Task Updated',
+                description: `"${activeTask.name}" moved to ${overColumnPhase}.`
+            });
+        } catch (error) {
+            setTasks(tasks); // Revert on error
+            console.error("Error updating task phase:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to update task phase.'
+            });
+        }
+    }
+  };
 
 
   if (loading) {
@@ -363,81 +435,63 @@ export default function Dashboard({ projectId }: DashboardProps) {
         />
 
       <main className="flex-1 overflow-x-auto custom-scrollbar">
-        <div className="p-4 sm:p-6 lg:p-8 h-full">
-         {selectedRelease ? (
-          <div className="flex gap-4 h-full">
-            {PHASES.map((phase) => {
-              const phaseTasks = filteredTasks.filter((task) => task.phase === phase);
-              const isCollapsed = collapsedColumns[phase];
-              return (
-                <Collapsible
-                    key={phase}
-                    open={!isCollapsed}
-                    onOpenChange={() => toggleColumnCollapse(phase)}
-                    className={cn("flex flex-col rounded-lg border bg-background transition-all duration-300", isCollapsed ? 'w-16' : 'flex-shrink-0 w-80 md:w-96')}
-                >
-                    <div className={cn("flex-shrink-0 p-4 border-b", isCollapsed ? 'h-full relative' : 'flex items-center gap-2')}>
-                        {isCollapsed ? (
-                            <div className="h-full flex flex-col items-center justify-between py-4">
-                                <div className="flex flex-col items-center">
-                                    <CollapsibleTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                                            <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
-                                        </Button>
-                                    </CollapsibleTrigger>
+        <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+            <div className="p-4 sm:p-6 lg:p-8 h-full">
+            {selectedRelease ? (
+            <div className="flex gap-4 h-full">
+                {PHASES.map((phase) => {
+                const phaseTasks = tasksByPhase[phase] || [];
+                const isCollapsed = collapsedColumns[phase];
+                return (
+                    <DroppableColumn
+                        key={phase}
+                        status={phase as any}
+                        tasks={phaseTasks}
+                        isCollapsed={!!isCollapsed}
+                        toggleCollapse={() => toggleColumnCollapse(phase)}
+                    >
+                         <SortableContext
+                                items={phaseTasks.map(t => t.id)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                            {phaseTasks.length > 0 ? (
+                                phaseTasks.map((task) => (
+                                    <DraggableTaskCard key={task.id} task={task}>
+                                        <TaskCard 
+                                            task={task} 
+                                            onEdit={handleEditTask}
+                                            onSuggest={handleSuggestUpdate}
+                                            onDelete={handleDeleteRequest}
+                                            onPromote={handlePromoteRequest}
+                                            onCompleteToggle={handleTaskCompleteToggle}
+                                            onSubTaskToggle={handleSubTaskToggle}
+                                        />
+                                    </DraggableTaskCard>
+                                ))
+                            ) : (
+                                <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                                    No tasks here.
                                 </div>
-                                 <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground [writing-mode:vertical-rl] rotate-180">
-                                     {phase}
-                                 </h2>
-                                 <div className="text-sm font-bold">{phaseTasks.length}</div>
-                            </div>
-                        ) : (
-                            <>
-                                <CollapsibleTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6">
-                                        <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
-                                    </Button>
-                                </CollapsibleTrigger>
-                                <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
-                                  {phase}
-                                  <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                                    {phaseTasks.length}
-                                  </span>
-                                </h2>
-                            </>
-                        )}
-                    </div>
-                    <CollapsibleContent asChild>
-                      <div className="space-y-4 overflow-y-auto flex-1 p-4">
-                        <PhaseColumn
-                          phase={phase}
-                          tasks={phaseTasks}
-                          onEditTask={handleEditTask}
-                          onSuggestUpdate={handleSuggestUpdate}
-                          onDeleteTask={handleDeleteRequest}
-                          onPromoteTask={handlePromoteRequest}
-                          onTaskCompleteToggle={handleTaskCompleteToggle}
-                          onSubTaskToggle={handleSubTaskToggle}
-                        />
-                      </div>
-                    </CollapsibleContent>
-                </Collapsible>
-              )
-            })}
-          </div>
-           ) : (
-             <div className="flex flex-col items-center justify-center h-full max-w-lg mx-auto text-center rounded-lg border-2 border-dashed p-12 bg-background">
-                <GitBranch className="h-12 w-12 text-muted-foreground mb-4" />
-                <h2 className="mt-6 text-xl font-semibold">No Releases Found</h2>
-                <p className="mt-2 text-center text-muted-foreground">
-                    This project doesn't have any releases yet. Create one to start adding tasks.
-                </p>
-                <Button className="mt-6" onClick={() => setIsManageReleasesOpen(true)}>
-                    Create Your First Release
-                </Button>
+                            )}
+                         </SortableContext>
+                    </DroppableColumn>
+                )
+                })}
             </div>
-           )}
-        </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center h-full max-w-lg mx-auto text-center rounded-lg border-2 border-dashed p-12 bg-background">
+                    <GitBranch className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h2 className="mt-6 text-xl font-semibold">No Releases Found</h2>
+                    <p className="mt-2 text-center text-muted-foreground">
+                        This project doesn't have any releases yet. Create one to start adding tasks.
+                    </p>
+                    <Button className="mt-6" onClick={() => setIsManageReleasesOpen(true)}>
+                        Create Your First Release
+                    </Button>
+                </div>
+            )}
+            </div>
+        </DndContext>
       </main>
 
       <TaskDialog
@@ -481,5 +535,3 @@ export default function Dashboard({ projectId }: DashboardProps) {
     </div>
   );
 }
-
-    

@@ -10,21 +10,12 @@ import { ChevronsRight } from 'lucide-react';
 import { Status, Task } from '@/lib/types';
 
 interface DroppableColumnProps {
-    status: Status;
+    status: string; // Keep as string to represent phase
     tasks: Task[];
     children: React.ReactNode;
     isCollapsed: boolean;
     toggleCollapse: () => void;
 }
-
-const statusColorMap: Record<Status, string> = {
-    'To Do': 'bg-gray-500',
-    'In Progress': 'bg-blue-500',
-    'Testing': 'bg-purple-500',
-    Completed: 'bg-green-500',
-    Blocked: 'bg-red-500',
-};
-
 
 export function DroppableColumn({ status, tasks, children, isCollapsed, toggleCollapse }: DroppableColumnProps) {
     const { setNodeRef, isOver } = useDroppable({
@@ -50,7 +41,6 @@ export function DroppableColumn({ status, tasks, children, isCollapsed, toggleCo
                                     <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
                                 </Button>
                             </CollapsibleTrigger>
-                            <div className={cn("w-2 h-2 rounded-full mt-2", statusColorMap[status])}></div>
                         </div>
                         <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground [writing-mode:vertical-rl] rotate-180">
                             {status}
@@ -64,13 +54,12 @@ export function DroppableColumn({ status, tasks, children, isCollapsed, toggleCo
                                 <ChevronsRight className={cn("h-4 w-4 transition-transform", !isCollapsed ? 'rotate-90' : 'rotate-0')} />
                             </Button>
                         </CollapsibleTrigger>
-                        <div className={cn("w-3 h-3 rounded-full", statusColorMap[status])}></div>
-                        <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2 uppercase">
-                            {status}
-                        </h2>
-                        <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                        <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+                          {status}
+                          <span className="text-sm font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
                             {tasks.length}
-                        </span>
+                          </span>
+                        </h2>
                     </>
                 )}
             </div>
@@ -82,4 +71,3 @@ export function DroppableColumn({ status, tasks, children, isCollapsed, toggleCo
         </Collapsible>
     );
 }
-

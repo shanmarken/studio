@@ -255,8 +255,13 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
                 await updateDoc(taskRef, taskData);
                 toast({ title: "Task Updated", description: `"${taskName}" has been successfully updated.` });
             } else {
-               toast({ variant: 'destructive', title: "Error", description: "Cannot add new tasks from this view." });
+               const docRef = await addDoc(collection(db, 'projects', currentProjectId, 'tasks'), {
+                ...taskData,
+                createdAt: serverTimestamp()
+               });
+               toast({ title: "Task Added", description: `"${taskName}" has been successfully added.` });
             }
+            setIsTaskDialogOpen(false);
         } catch (error) {
             console.error("Error saving task: ", error);
             toast({ variant: 'destructive', title: "Error", description: "Failed to save task." });
@@ -300,14 +305,27 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
 
     const projectId = (task as TaskWithProject).projectId;
     const taskRef = doc(db, 'projects', projectId, 'tasks', taskId);
-    let updateData: Partial<Task> = {};
+    let newStatus = task.status;
+    let newPercent = task.percentComplete;
+    
     if (isComplete) {
-      updateData = { status: 'Testing', percentComplete: 100 };
+        newStatus = task.subTasks && task.subTasks.length > 0 ? 'Testing' : 'Completed';
+        newPercent = 100;
     } else {
-      const newPercent = (task.subTasks && task.subTasks.length > 0) ? task.percentComplete : 0;
-      updateData = { status: 'In Progress', percentComplete: newPercent };
+        newStatus = 'In Progress';
+        newPercent = 0;
     }
-    await updateDoc(taskRef, updateData);
+
+    try {
+        await updateDoc(taskRef, { status: newStatus, percentComplete: newPercent });
+    } catch (error) {
+        console.error("Error updating task status:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to update task status.'
+        });
+    }
   }
 
   const handleSubTaskToggle = async (taskId: string, subTaskId: string, isComplete: boolean) => {
@@ -322,13 +340,13 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
 
     const completedCount = updatedSubTasks.filter(st => st.completed).length;
     const totalCount = updatedSubTasks.length;
-    const newPercentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : task.percentComplete;
+    const newPercentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
     
     let newStatus = task.status;
     if (totalCount > 0) {
         if (newPercentComplete === 100) {
           newStatus = 'Testing';
-        } else if (newPercentComplete > 0 && task.status !== 'Blocked') {
+        } else if (newPercentComplete > 0 && task.status !== 'Blocked' && task.status !== 'In Progress') {
           newStatus = 'In Progress';
         } else if (newPercentComplete === 0 && (task.status === 'Completed' || task.status === 'Testing')) {
           newStatus = 'In Progress';
@@ -336,11 +354,20 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
     }
     
     const taskRef = doc(db, 'projects', projectId, 'tasks', taskId);
-    await updateDoc(taskRef, {
-        subTasks: updatedSubTasks,
-        percentComplete: newPercentComplete,
-        status: newStatus
-    });
+    try {
+        await updateDoc(taskRef, {
+            subTasks: updatedSubTasks,
+            percentComplete: newPercentComplete,
+            status: newStatus
+        });
+    } catch(error) {
+         console.error("Error updating subtask:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to update sub-task.'
+        });
+    }
   };
 
   const toggleColumnCollapse = (status: Status) => {
@@ -429,5 +456,3 @@ export function MyTasksClient({ searchTerm }: MyTasksClientProps) {
     </div>
   );
 }
-
-    

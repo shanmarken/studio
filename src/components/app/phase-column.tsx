@@ -23,24 +23,8 @@ type PhaseColumnProps = {
 export function PhaseColumn({ phase, tasks, onEditTask, onSuggestUpdate, onDeleteTask, onPromoteTask, onTaskCompleteToggle, onSubTaskToggle }: PhaseColumnProps) {
   return (
     <div className="h-full">
-        {tasks.length > 0 ? (
-            tasks.map((task) => (
-            <TaskCard 
-                key={task.id} 
-                task={task} 
-                onEdit={onEditTask} 
-                onSuggest={onSuggestUpdate}
-                onDelete={onDeleteTask}
-                onPromote={onPromoteTask}
-                onCompleteToggle={onTaskCompleteToggle}
-                onSubTaskToggle={onSubTaskToggle}
-            />
-            ))
-        ) : (
-            <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
-                No tasks here.
-            </div>
-        )}
+        {/* This component is now effectively a passthrough, DND logic is in dashboard */}
+        {children}
     </div>
   );
 }
